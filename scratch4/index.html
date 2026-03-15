@@ -27,8 +27,9 @@
         height: 50px;
         width: 300px;
         margin-top: auto;
-        margin-left: 10px
-        font-size: 15px;
+        margin-left: 10px;
+        position: relative;
+        display: inline-block;
       }
       
       #create, #look, #idea, #other {
@@ -37,6 +38,21 @@
         text-decoration: none;
         background: linear-gradient(#3300ff, #8000ff);
         font-size: 8px;
+      }
+
+      .search-wrapper .icon {
+        position: absolute;
+        left: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 16px;
+        height: 16px;
+      }
+
+      .search-wrapper input {
+        padding-left: 32px;
+        height: 32px;
+        font-size: 16px;
       }
     </style>
   </head>
@@ -47,7 +63,10 @@
       <a href="#" id="look"><h1> 見る　</h1></a>
       <a href="#" id="idea"><h1>アイデア</h1></a>
       <a href="#" id="other"><h1> その他 </h1></a>
-      <input type="text" placeholder=" 🔍検索" id="search">
+      <div class="search">
+        <img src="https://zeipara.github.io/site/nav-search-glass.png" class="icon">
+        <input type="text" placeholder="検索">
+      </div>
     </div>
   </body>
 </html>
