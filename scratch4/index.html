@@ -68,10 +68,72 @@
       }
 
       #setting, #message, #file, #icon {
-        padding: 0 -20px
+        padding: 0 -20px;
         height: 60px;
         margin: auto 0;
         background: linear-gradient(#3300ff, #8000ff);
+      }
+      
+      .activity {
+        position: relative;
+        padding: 10px;
+        border-radius: 10px;
+        background: linear-gradient(#f2e6ff, #ffffff);
+        top: 60px;
+        height: 100px;
+        width: 50%;
+        margin: 10px;
+        z-index: 980;
+      }
+
+      .activity::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        padding: 4px;
+        border-radius: 10px;
+        background: linear-gradient(#8000ff, #3300ff);
+        -webkit-mask:
+          linear-gradient(#fff 0 0) content-box,
+          linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+                mask-composite: exclude;
+      }
+
+      
+      .activity-text {
+        position: relative;
+        padding: 10px;
+        border-radius: 10px;
+        background: linear-gradient(#f2e6ff, #ffffff);
+        top: 80px;
+        height: 20px;
+        width: 30%;
+        margin: 10px;
+        z-index: 990;
+        left: 10px;
+      }
+
+      .activity-text::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        padding: 4px;
+        border-radius: 10px;
+        background: linear-gradient(#8000ff, #3300ff);
+        -webkit-mask:
+          linear-gradient(#fff 0 0) content-box,
+          linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+                mask-composite: exclude;
+      }
+
+      .activity-text p {
+        background: linear-gradient(#3300ff, #8000ff); 
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: auto;
+        padding-left: 10px
       }
     </style>
   </head>
@@ -90,6 +152,12 @@
       <a href="#" id="message"><img src="https://zeipara.github.io/site/Message.svg" height=50px></a>
       <a href="#" id="file"><img src="https://zeipara.github.io/site/MyStaff.svg" height=50px></a>
       <a href="#" id="icon"><img src="https://zeipara.github.io/site/Icon.svg" height=50px></a>
+    </div>
+    <div class="activity-text">
+      <p>最新の情報</p>
+    </div>
+    <div class="activity">
+      
     </div>
   </body>
 </html>
