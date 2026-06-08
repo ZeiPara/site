@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歴史並び替えクイズ</title>
+    <title>歴史並び替えクイズ（時代の流れ解説付き）</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -18,7 +18,7 @@
             align-items: center;
         }
         .container {
-            max-width: 600px;
+            max-width: 650px;
             width: 100%;
             background: #fff;
             padding: 30px;
@@ -42,7 +42,6 @@
             border-radius: 8px;
             margin-bottom: 20px;
         }
-        /* 選択肢ボタンのスタイル */
         .quiz-btn {
             display: flex;
             align-items: center;
@@ -64,7 +63,6 @@
             background: #f7fafc;
             transform: translateY(-1px);
         }
-        /* 選択されたときのスタイル */
         .quiz-btn.selected {
             background: #cbd5e0;
             border-left-color: #4a5568;
@@ -85,7 +83,6 @@
         .quiz-btn.selected span.label {
             background: #4a5568;
         }
-        /* 回答表示エリア */
         .answer-area {
             display: flex;
             justify-content: center;
@@ -144,15 +141,56 @@
         .correct { background: #c6f6d5; color: #22543d; }
         .incorrect { background: #fed7d7; color: #742a2a; }
         
+        /* 強化した解説エリアのスタイル */
         .explanation {
-            margin-top: 15px;
+            margin-top: 20px;
             background: #f7fafc;
-            padding: 15px;
-            border-radius: 6px;
+            padding: 20px;
+            border-radius: 8px;
             border: 1px solid #e2e8f0;
             display: none;
-            font-size: 15px;
-            line-height: 1.6;
+        }
+        .flow-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #2d3748;
+            border-bottom: 2px solid #cbd5e0;
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+        }
+        .flow-step {
+            background: #fff;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .flow-step .year {
+            color: #e53e3e;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        .flow-step .name {
+            font-weight: bold;
+            color: #2b6cb0;
+        }
+        .flow-arrow {
+            text-align: center;
+            color: #a0aec0;
+            font-size: 20px;
+            margin: 8px 0;
+            position: relative;
+        }
+        .flow-connect-text {
+            display: inline-block;
+            background: #ebf8ff;
+            color: #2b6cb0;
+            font-size: 13px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            margin: 5px 0;
+            font-weight: bold;
+            border: 1px solid #bee3f8;
         }
     </style>
 </head>
@@ -162,11 +200,8 @@
     <h1>歴史出来事 並び替えクイズ</h1>
     <p class="instruction">下の選択肢を**古い順（時系列）**にタップして並び替えてください。<br>（もう一度押すとキャンセルできます）</p>
     
-    <div class="quiz-box" id="quiz-box">
-        <!-- ここに選択肢ボタンが動的に生成されます -->
-    </div>
+    <div class="quiz-box" id="quiz-box"></div>
     
-    <!-- あなたの選択順を表示するエリア -->
     <div class="answer-area">
         <div class="answer-box" id="box0"></div>
         <div class="answer-box" id="box1"></div>
@@ -184,118 +219,114 @@
 </div>
 
 <script>
-// 全データリスト（漢字・年代順）
+// 全データリスト（漢字・年代順、そして「次の時代へのつながり」をセット）
 const historyData = [
-    { name: "鹿鳴館（開館）", year: 1883 },
-    { name: "甲午農民戦争", year: 1894 },
-    { name: "日英通商航海条約（調印）", year: 1894 },
-    { name: "日清戦争", year: 1894 },
-    { name: "下関条約", year: 1895 },
-    { name: "三国干渉", year: 1895 },
-    { name: "大韓帝国成立", year: 1897 },
-    { name: "立憲政友会結成", year: 1900 },
-    { name: "義和団事件", year: 1900 },
-    { name: "日英同盟", year: 1902 },
-    { name: "日露戦争", year: 1904 },
-    { name: "「君死にたまふことなかれ」発表", year: 1904 },
-    { name: "ポーツマス条約", year: 1905 },
-    { name: "南満州鉄道（満鉄）設立", year: 1906 },
-    { name: "韓国統監府設置（※後の総督府）", year: 1906 },
-    { name: "韓国併合", year: 1910 },
-    { name: "関税自主権の完全回復", year: 1911 },
-    { name: "辛亥革命", year: 1911 },
-    { name: "中華民国成立", year: 1912 },
-    { name: "清の滅亡", year: 1912 },
-    { name: "第一次護憲運動", year: 1912 },
-    { name: "三国同盟（※結成は1882年）", year: 1882 },
-    { name: "三国協商", year: 1907 },
-    { name: "第一次世界大戦", year: 1914 },
-    { name: "二十一カ条の要求", year: 1915 },
-    { name: "ロシア革命", year: 1917 },
-    { name: "シベリア出兵", year: 1918 },
-    { name: "米騒動", year: 1918 },
-    { name: "原敬が政党内閣をつくる", year: 1918 },
-    { name: "第一次世界大戦終戦", year: 1918 },
-    { name: "パリ講和会議", year: 1919 },
-    { name: "三・一独立運動", year: 1919 },
-    { name: "五・四運動", year: 1919 },
-    { name: "ベルサイユ条約", year: 1919 },
-    { name: "ワイマール憲法", year: 1919 },
-    { name: "国際連盟（発足）", year: 1920 },
-    { name: "新婦人協会結成", year: 1920 },
-    { name: "第1回メーデー", year: 1920 },
-    { name: "ワシントン会議", year: 1921 },
-    { name: "日本労働総同盟", year: 1921 },
-    { name: "全国水平社創立", year: 1922 },
-    { name: "日本農民組合結成", year: 1922 },
-    { name: "日本共産党結成", year: 1922 },
-    { name: "ソ連（ソビエト社会主義共和国連邦）成立", year: 1922 },
-    { name: "イタリアのファシスト政権誕生", year: 1922 },
-    { name: "関東大震災", year: 1923 },
-    { name: "イギリスで労働党内閣（第1次）", year: 1924 },
-    { name: "第二次護憲運動", year: 1924 },
-    { name: "普通選挙法・治安維持法制定", year: 1925 },
-    { name: "金融恐慌", year: 1927 },
-    { name: "中国国民政府（南京）", year: 1927 },
-    { name: "第1次五カ年計画（ソ連）", year: 1928 },
-    { name: "世界恐慌", year: 1929 },
-    { name: "北海道アイヌ協会設立", year: 1930 },
-    { name: "ロンドン海軍軍縮条約", year: 1930 },
-    { name: "昭和恐慌", year: 1930 },
-    { name: "柳条湖事件", year: 1931 },
-    { name: "満州事変", year: 1931 },
-    { name: "満州国建国", year: 1932 },
-    { name: "五・一五事件", year: 1932 },
-    { name: "日本が国連（国際連盟）脱退", year: 1933 },
-    { name: "ニューディール政策開始", year: 1933 },
-    { name: "ヒトラーが首相になる", year: 1933 },
-    { name: "イタリアがエチオピアを征服", year: 1936 },
-    { name: "二・二六事件", year: 1936 },
-    { name: "日独防共協定", year: 1936 },
-    { name: "盧溝橋事件", year: 1937 },
-    { name: "日中戦争が起こる", year: 1937 },
-    { name: "国家総動員法", year: 1938 },
-    { name: "独ソ不可侵条約", year: 1939 },
-    { name: "第二次世界大戦（ポーランド侵略）", year: 1939 },
-    { name: "大政翼賛会", year: 1940 },
-    { name: "フランスが降伏", year: 1940 },
-    { name: "日独伊三国同盟", year: 1940 },
-    { name: "小学校が国民学校となる", year: 1941 },
-    { name: "日ソ中立条約", year: 1941 },
-    { name: "ドイツがソ連侵攻", year: 1941 },
-    { name: "大西洋憲章", year: 1941 },
-    { name: "太平洋戦争", year: 1941 },
-    { name: "ミッドウェー海戦", year: 1942 },
-    { name: "イタリアが降伏", year: 1943 },
-    { name: "サイパン島陥落", year: 1944 },
-    { name: "東条内閣退陣", year: 1944 },
-    { name: "東京大空襲", year: 1945 },
-    { name: "沖縄戦", year: 1945 },
-    { name: "ドイツ降伏", year: 1945 },
-    { name: "広島に原爆", year: 1945 },
-    { name: "ソ連参戦", year: 1945 },
-    { name: "長崎に原爆", year: 1945 },
-    { name: "日本が降伏（ポツダム宣言受諾発表）", year: 1945 },
-    { name: "玉音放送", year: 1945 }
+    { name: "鹿鳴館（開館）", year: 1883, nextFlow: "欧米風の外交を進めるも条約改正には至らず、国内の対外強硬論が強まるなかで、東アジアの緊張が高まり…" },
+    { name: "甲午農民戦争", year: 1894, nextFlow: "朝鮮でのこの暴動をきっかけに、日清両国が出兵したことで衝突し…" },
+    { name: "日英通商航海条約（調印）", year: 1894, nextFlow: "治外法権の撤廃に成功し、欧米と対等に近づいた日本は、清との決戦へ踏み切り…" },
+    { name: "日清戦争", year: 1894, nextFlow: "日本の勝利に終わり、近代化の成果を証明したことで、講和条約が結ばれ…" },
+    { name: "下関条約", year: 1895, nextFlow: "日本が遼東半島を獲得したものの、これに不満を持つロシア・フランス・ドイツが圧力をかけ…" },
+    { name: "三国干渉", year: 1895, nextFlow: "日本は遼東半島を清に返還。「臥薪嘗胆」を合言葉に、ロシアへの対抗心を強めて…" },
+    { name: "大韓帝国成立", year: 1897, nextFlow: "朝鮮が清から独立した形をとるも、ロシアと日本の勢力争いはさらに激化し…" },
+    { name: "立憲政友会結成", year: 1900, nextFlow: "伊藤博文らによる政党政治の基礎ができあがる一方、大陸では大きな反乱が起こり…" },
+    { name: "義和団事件", year: 1900, nextFlow: "清での反乱を鎮圧するためにロシアが満州に居座り続けたため、危機感を持った日本とイギリスが急接近し…" },
+    { name: "日英同盟", year: 1902, nextFlow: "強力な後ろ盾を得た日本は、満州・朝鮮をめぐってロシアとの交渉が決裂し…" },
+    { name: "日露戦争", year: 1904, nextFlow: "国内外が激戦に湧くなか、与謝野晶子が反戦の詩を発表し…" },
+    { name: "「君死にたまふことなかれ」発表", year: 1904, nextFlow: "戦争が長期化し、両国ともに限界が近づくなかでアメリカの仲介により…" },
+    { name: "ポーツマス条約", year: 1905, nextFlow: "講和によってロシアから得た権利をもとに、満州への進出を進めるため…" },
+    { name: "南満州鉄道（満鉄）設立", year: 1906, nextFlow: "満州の権益を確保しつつ、さらに隣の韓国への支配力を強めるために機関を置き…" },
+    { name: "韓国統監府設置", year: 1906, nextFlow: "初代統監の伊藤博文が暗殺されるなどの激動を経て、日本はついに完全な支配に乗り出し…" },
+    { name: "韓国併合", year: 1910, nextFlow: "朝鮮半島を完全に領有し、大国としての地位を固めた日本は、念願の外交課題を達成し…" },
+    { name: "関税自主権の完全回復", year: 1911, nextFlow: "明治以来の不平等条約をすべて解消する一方、隣の清では革命の火の手が上がり…" },
+    { name: "辛亥革命", year: 1911, nextFlow: "孫文らの活躍によってアジア最初の共和国が誕生。これにより古い王朝は…" },
+    { name: "中華民国成立", year: 1912, nextFlow: "新しい国家がスタートするのと同時に、アジアを支配していた巨大な帝国は…" },
+    { name: "清の滅亡", year: 1912, nextFlow: "200年以上続いた王朝が終焉。日本国内でも明治天皇が崩御し、大正デモクラシーの波が起き…" },
+    { name: "第一次護憲運動", year: 1912, nextFlow: "「閥族打破・憲政擁護」を掲げて国民が立ち上がる中、ヨーロッパで世界を巻き込む大戦が勃発し…" },
+    { name: "三国同盟（※1882結成）", year: 1882, nextFlow: "ヨーロッパが2大陣営に分裂するなか、イギリスを中心とする対抗陣営も完成し…" },
+    { name: "三国協商", year: 1907, nextFlow: "複雑な同盟関係の末、サライェボ事件をきっかけに、ついに世界規模の大戦へ突入し…" },
+    { name: "第一次世界大戦", year: 1914, nextFlow: "ヨーロッパが主戦場になるなか、日本は日英同盟を理由に参戦し、中国での権益を拡大しようと…" },
+    { name: "二十一カ条の要求", year: 1915, nextFlow: "中国への圧力を強める一方、戦争の長期化で疲弊したロシアでは、世界初の事態が起き…" },
+    { name: "ロシア革命", year: 1917, nextFlow: "レーニンらにより社会主義政権が誕生。これの拡大を防ごうと、日米など各国は軍を送り…" },
+    { name: "シベリア出兵", year: 1918, nextFlow: "出兵を見越した業者の買い占めで米価が暴騰。これに怒った富山の主婦らから始まった暴動が全国へ広がり…" },
+    { name: "米騒動", year: 1918, nextFlow: "騒動の責任をとって寺内内閣が倒れ、国民の期待を背負って本格的な政党内閣が誕生し…" },
+    { name: "原敬が政党内閣をつくる", year: 1918, nextFlow: "「平民宰相」が政治をリードするなか、ドイツの降伏によって激戦が終結し…" },
+    { name: "第一次世界大戦終戦", year: 1918, nextFlow: "大戦後の新しい国際秩序を話し合うため、連合国軍が集まり…" },
+    { name: "パリ講和会議", year: 1919, nextFlow: "民族自決の風潮が高まるなか、日本の植民地支配下にあった朝鮮半島で大規模な抵抗が起き…" },
+    { name: "三・一独立運動", year: 1919, nextFlow: "朝鮮の動きに刺激を受け、中国でも反日・反帝を叫ぶ熱狂的な運動が巻き起こり…" },
+    { name: "五・四運動", year: 1919, nextFlow: "各地で民族運動が激化するなか、ドイツに対する講和条約が正式に結ばれ…" },
+    { name: "ベルサイユ条約", year: 1919, nextFlow: "ドイツに厳しい条件が課される一方、敗戦したドイツでは世界で最も民主的な憲法が作られ…" },
+    { name: "ワイマール憲法", year: 1919, nextFlow: "民主主義の手本となる法律が誕生する一方、世界は戦争を二度と起こさないための組織を発足させ…" },
+    { name: "国際連盟（発足）", year: 1920, nextFlow: "平和への試みが始まるなか、日本国内でも平塚らいてうらが女性の権利を求めて立ち上がり…" },
+    { name: "新婦人協会結成", year: 1920, nextFlow: "女性運動が本格化する一方、労働者たちも権利を主張して日本で初めての集会を開き…" },
+    { name: "第1回メーデー", year: 1920, nextFlow: "労働・社会運動が活発化するなか、世界の大国は海軍の軍備制限や太平洋の秩序を話し合うため…" },
+    { name: "ワシントン会議", year: 1921, nextFlow: "国際的な協調が進むなか、国内の労働組合はさらに団結を強めて発展し…" },
+    { name: "日本労働総同盟", year: 1921, nextFlow: "労働者の組織化が進む一方、被差別部落の人々も自らの解放を目指して立ち上がり…" },
+    { name: "全国水平社創立", year: 1922, nextFlow: "「人の世に熱あれ、人間に光あれ」と宣言が出されるなか、農民たちも小作料引き下げを求めて組合を作り…" },
+    { name: "日本農民組合結成", year: 1922, nextFlow: "様々な社会運動が合流していく中で、本格的な社会主義・共産主義政党を目指して…" },
+    { name: "日本共産党結成", year: 1922, nextFlow: "国内の革新運動が激化するなか、世界ではロシアを中心とした巨大な国家連合が誕生し…" },
+    { name: "ソ連成立", year: 1922, nextFlow: "世界初の社会主義国家が正式に誕生。一方、イタリアではこれに対抗する右派勢力が台頭し…" },
+    { name: "イタリアのファシスト政権誕生", year: 1922, nextFlow: "ムッソリーニが権力を握り世界に緊張が走るなか、日本を未曾有の大災害が襲い…" },
+    { name: "関東大震災", year: 1923, nextFlow: "首都圏が壊滅的な打撃を受け、経済が混乱。その復興の最中、イギリスでは政権交代が起き…" },
+    { name: "イギリスで労働党内閣（第1次）", year: 1924, nextFlow: "世界の民主化が進むなか、日本でも再び政党政治を取り戻そうとする運動が実を結び…" },
+    { name: "第二次護憲運動", year: 1924, nextFlow: "加藤高明内閣が誕生し、「憲政の常道」が確立。これにより、悲願の選挙法改正と、それを取り締まる法が同時にでき…" },
+    { name: "普通選挙法・治安維持法制定", year: 1925, nextFlow: "25歳以上の全男子に選挙権が与えられる一方、震災手形の処理の失敗から銀行が次々と倒れ…" },
+    { name: "金融恐慌", year: 1927, nextFlow: "経済がパニックに陥る一方、お隣の中国では、孫文の遺志を継いだ勢力がまとまり…" },
+    { name: "中国国民政府（南京）", year: 1927, nextFlow: "蒋介石のもとで中国の統一が進む一方、ソ連では国力を一気に高めるための大計画が始まり…" },
+    { name: "第1次五カ年計画（ソ連）", year: 1928, nextFlow: "ソ連が工業化を強行するなか、アメリカの株価暴落をきっかけに世界中が奈落の底へ突き落とされ…" },
+    { name: "世界恐慌", year: 1929, nextFlow: "世界経済がマヒするなか、日本でも先住民族の権利や親睦を目指す動きが形になり…" },
+    { name: "北海道アイヌ協会設立", year: 1930, nextFlow: "国内の社会変化が進むなか、恐慌の痛手を和らげるための国際的な軍縮会議が開かれ…" },
+    { name: "ロンドン海軍軍縮条約", year: 1930, nextFlow: "補助艦の割合を制限したものの、国内の軍部から「統帥権干犯」と猛烈な批判が起き…" },
+    { name: "昭和恐慌", year: 1930, nextFlow: "深刻な不況で農村が飢餓に苦しみ、国民の不満が爆発寸前になるなか、関東軍が独自の行動を起こし…" },
+    { name: "柳条湖事件", year: 1931, nextFlow: "自ら満鉄の線路を爆破し、それを中国軍の仕業だとした関東軍は、一気に軍事行動を拡大して…" },
+    { name: "満州事変", year: 1931, nextFlow: "国際社会の批判を無視して満州一帯を占領した日本は、そこを実質的な支配下に置くため…" },
+    { name: "満州国建国", year: 1932, nextFlow: "清の最後の皇帝・溥儀をトップに据えた傀儡国家を作ったが、これに反対する犬養毅首相が軍人に襲われ…" },
+    { name: "五・一五事件", year: 1932, nextFlow: "首相が暗殺され政党内閣の時代が終焉。国際連盟が満州国を認めない方針を出すと、日本は反発して…" },
+    { name: "日本が国連脱退", year: 1933, nextFlow: "国際的な孤立の道を歩み始める日本。一方、アメリカでは恐慌を乗り切るための大改革が始まり…" },
+    { name: "ニューディール政策開始", year: 1933, nextFlow: "アメリカが政府主導の景気回復を進める一方、同じく恐慌に苦しむドイツでは最悪の独裁者が誕生し…" },
+    { name: "ヒトラーが首相になる", year: 1933, nextFlow: "ナチスが政権を握り、ヨーロッパの不穏な動きが加速。イタリアもこれに呼応するように暴走し…" },
+    { name: "イタリアがエチオピアを征服", year: 1936, nextFlow: "ファシズム国家が領土を広げるなか、日本国内でも軍の過激派による大規模なクーデター未遂が起き…" },
+    { name: "二・二六事件", year: 1936, nextFlow: "反乱は鎮圧されたものの、軍部の発言権は決定的なものとなり、同じ独裁国家のドイツと手を結び…" },
+    { name: "日独防共協定", year: 1936, nextFlow: "反共産主義の同盟を結び、陣営を固めた日本。その翌年、北京郊外でついに銃声が響き…" },
+    { name: "盧溝橋事件", year: 1937, nextFlow: "この偶発的な衝突をきっかけに、日本と中国は宣戦布告なしの全面的な戦いへ突入し…" },
+    { name: "日中戦争が起こる", year: 1937, nextFlow: "戦況が泥沼化し、物資が不足し始めたため、政府はすべての国民と資源を戦争に動員できるように法を定め…" },
+    { name: "国家総動員法", year: 1938, nextFlow: "統制経済が進むなか、ヨーロッパではドイツが衝撃的な条約をソ連と結び…" },
+    { name: "独ソ不可侵条約", year: 1939, nextFlow: "天敵同士の握手に世界が仰天。後ろ憂いをなくしたドイツは、ついに隣国へ攻め込み…" },
+    { name: "第二次世界大戦（ポーランド侵略）", year: 1939, nextFlow: "欧州で再び大戦が勃発。日本もこれに便乗し、国内の全政党を解散して巨大な戦争協力組織にまとめ…" },
+    { name: "大政翼賛会", year: 1940, nextFlow: "「挙国一致」の体制を作るなか、ヨーロッパではドイツの電撃戦により、主要国が… " },
+    { name: "フランスが降伏", year: 1940, nextFlow: "欧州の勢力図が激変。勢いに乗る枢軸国側として、日本・ドイツ・イタリアの結束が固まり…" },
+    { name: "日独伊三国同盟", year: 1940, nextFlow: "アメリカとの対立が決定的になるなか、国内では教育の場も完全に戦時体制へと組み替えられ…" },
+    { name: "小学校が国民学校となる", year: 1941, nextFlow: "「皇国民の錬成」が進むなか、北方の安全を確保して南へ進出するため、日本はソ連と条約を結び…" },
+    { name: "日ソ中立条約", year: 1941, nextFlow: "ソ連との衝突を避けたはずが、そのわずか2ヶ月後、ドイツが突如裏切って…" },
+    { name: "ドイツがソ連侵攻", year: 1941, nextFlow: "独ソ戦が始まり世界中が混乱するなか、米英の首脳は戦後の平和原則についての宣言を発表し…" },
+    { name: "大西洋憲章", year: 1941, nextFlow: "連合国側の団結が強まるなか、石油の全面禁輸などで追い詰められた日本は、ついに真珠湾を奇襲し…" },
+    { name: "太平洋戦争", year: 1941, nextFlow: "快進撃を続けた日本軍だったが、半年後、太平洋の拠点をめぐる大激突で大敗し…" },
+    { name: "ミッドウェー海戦", year: 1942, nextFlow: "この大敗を境に戦局は完全に逆転。連合国軍の反撃が激しくなるなか、ヨーロッパでは陣営が一角崩れ…" },
+    { name: "イタリアが降伏", year: 1943, nextFlow: "枢軸国の崩壊が始まるなか、太平洋の前線でも米軍の攻勢を止められず、絶対国防圏の要が…" },
+    { name: "サイパン島陥落", year: 1944, nextFlow: "日本本土への空襲が可能になってしまい、戦争継続の責任をとって…" },
+    { name: "東条内閣退陣", year: 1944, nextFlow: "政権が変わるも戦争は止められず、ついに日本本土への無差別爆撃が本格化し…" },
+    { name: "東京大空襲", year: 1945, nextFlow: "首都が火の海になり甚大な被害が出るなか、米軍はついに日本の本土（県庁所在地）へ上陸し…" },
+    { name: "沖縄戦", year: 1945, nextFlow: "激しい地上戦で多くの尊い命が失われるなか、ヨーロッパではついに独裁者が倒れ…" },
+    { name: "ドイツ降伏", year: 1945, nextFlow: "残された日本に対し、連合国はポツダム宣言で無条件降伏を要求。日本が回答を保留するなか、人類史上初の兵器が…" },
+    { name: "広島に原爆", year: 1945, nextFlow: "一瞬にして街が壊滅。その惨劇の最中、中立条約を結んでいたはずの国が突如大軍で攻め込んできて…" },
+    { name: "ソ連参戦", year: 1945, nextFlow: "挟み撃ちになり完全に退路を断たれた日本。さらにその翌日、追い打ちをかけるように…" },
+    { name: "長崎に原爆", year: 1945, nextFlow: "二度目の惨劇に直面し、ここに至ってついに日本政府はポツダム宣言の受諾を決定し…" },
+    { name: "日本が降伏", year: 1945, nextFlow: "終戦が決定。そしてその事実が、天皇自身の声によって全国民へ届けられ…" },
+    { name: "玉音放送", year: 1945, nextFlow: "長きにわたる戦争が終わり、日本は敗戦からの新しい歩みを始めることになりました。" }
 ];
 
 let currentSelection = [];
 let correctOrder = "";
-let userAnswers = []; // ユーザーが選択した記号の配列
+let userAnswers = [];
 
-// クイズの生成
 function generateQuiz() {
-    // リセット
     document.getElementById("result").style.display = "none";
     document.getElementById("explanation").style.display = "none";
     userAnswers = [];
     updateAnswerDisplay();
     
-    // ランダムに4つ抽出
     let shuffled = [...historyData].sort(() => 0.5 - Math.random());
     currentSelection = shuffled.slice(0, 4);
     
-    // 正解の年代順ソート
     let sortedSelection = [...currentSelection].sort((a, b) => a.year - b.year);
     
     let labels = ["A", "B", "C", "D"];
@@ -309,12 +340,10 @@ function generateQuiz() {
         });
     }
     
-    // 正解の文字列（例："BDAC"）を作成
     correctOrder = sortedSelection.map(sortedItem => {
         return displayItems.find(dispItem => dispItem.name === sortedItem.name).label;
     }).join("");
     
-    // ボタンの配置
     let quizBox = document.getElementById("quiz-box");
     quizBox.innerHTML = "";
     displayItems.forEach(item => {
@@ -325,27 +354,22 @@ function generateQuiz() {
     });
 }
 
-// 選択肢がクリックされた時の処理
 function selectItem(label) {
     let btn = document.getElementById(`btn-${label}`);
     let index = userAnswers.indexOf(label);
     
     if (index > -1) {
-        // すでに選ばれている場合は「解除」
         userAnswers.splice(index, 1);
         btn.classList.remove("selected");
     } else {
-        // まだ選ばれていない場合は「追加」（最大4つまで）
         if (userAnswers.length < 4) {
             userAnswers.push(label);
             btn.classList.add("selected");
         }
     }
-    // 上部の回答状況表示を更新
     updateAnswerDisplay();
 }
 
-// 回答欄の表示更新
 function updateAnswerDisplay() {
     for (let i = 0; i < 4; i++) {
         let box = document.getElementById(`box${i}`);
@@ -359,7 +383,6 @@ function updateAnswerDisplay() {
     }
 }
 
-// 答え合わせ
 function checkAnswer() {
     let resultDiv = document.getElementById("result");
     let expDiv = document.getElementById("explanation");
@@ -380,17 +403,34 @@ function checkAnswer() {
     }
     resultDiv.style.display = "block";
     
-    // 解説（年号順一覧）
+    // 【強化ポイント】時代の流れを紡ぐ自動ジェネレーター
     let sorted = [...currentSelection].sort((a, b) => a.year - b.year);
-    let expHtml = "<strong>【正しい年代順】</strong><br>";
+    let expHtml = "<div class='flow-title'>🧭 この4つの時代の流れ（因果関係）</div>";
+    
     sorted.forEach((item, index) => {
-        expHtml += `${index + 1}. ${item.name} (${item.year}年)<br>`;
+        // 各出来事のボックス
+        expHtml += `
+            <div class="flow-step">
+                <span class="year">${item.year}年</span>
+                <span class="name">${item.name}</span>
+            </div>
+        `;
+        
+        // 最後の出来事以外には、次のステップへの矢印と解説を挟む
+        if (index < sorted.length - 1) {
+            expHtml += `
+                <div class="flow-arrow">
+                    ↓<br>
+                    <div class="flow-connect-text">${item.nextFlow}</div>
+                </div>
+            `;
+        }
     });
+    
     expDiv.innerHTML = expHtml;
     expDiv.style.display = "block";
 }
 
-// ページ読み込み時にクイズを生成
 window.onload = generateQuiz;
 </script>
 
