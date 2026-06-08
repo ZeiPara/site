@@ -443,7 +443,7 @@ function checkAnswer() {
     let flowText = sorted.map(item => item.name).join("→");
     
     // コピー用テキストエリアに出力
-    outputBox.value = `回答:${userAnsStr}、正当:${correctOrder}（${flowText}）`;
+    outputBox.value = `回答:${userAnsStr}、正当:${correctOrder}（${flowText}）これについて解説して`;
     outputArea.style.display = "block";
     
     // 時代の流れ解説生成
