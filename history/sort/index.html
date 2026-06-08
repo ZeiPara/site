@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歴史並び替えクイズ（時代の流れ解説付き）</title>
+    <title>歴史並び替えクイズ（矢印テキスト出力付き）</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -141,7 +141,32 @@
         .correct { background: #c6f6d5; color: #22543d; }
         .incorrect { background: #fed7d7; color: #742a2a; }
         
-        /* 強化した解説エリアのスタイル */
+        .text-output-area {
+            margin-top: 20px;
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e0;
+            display: none;
+        }
+        .text-output-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #4a5568;
+            margin-bottom: 8px;
+        }
+        .text-output-box {
+            width: 100%;
+            font-family: monospace;
+            font-size: 14px;
+            padding: 10px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            box-sizing: border-box;
+            color: #2d3748;
+        }
+        
         .explanation {
             margin-top: 20px;
             background: #f7fafc;
@@ -215,11 +240,18 @@
     </div>
     
     <div class="result" id="result"></div>
+    
+    <!-- テキスト生成・出力エリア -->
+    <div class="text-output-area" id="text-output-area">
+        <div class="text-output-title">📋 結果テキスト（コピー用）</div>
+        <input type="text" class="text-output-box" id="text-output-box" readonly onclick="this.select()">
+    </div>
+    
     <div class="explanation" id="explanation"></div>
 </div>
 
 <script>
-// 全データリスト（漢字・年代順、そして「次の時代へのつながり」をセット）
+// 全データリスト（漢字・年代順、つながり文入り）
 const historyData = [
     { name: "鹿鳴館（開館）", year: 1883, nextFlow: "欧米風の外交を進めるも条約改正には至らず、国内の対外強硬論が強まるなかで、東アジアの緊張が高まり…" },
     { name: "甲午農民戦争", year: 1894, nextFlow: "朝鮮でのこの暴動をきっかけに、日清両国が出兵したことで衝突し…" },
@@ -265,9 +297,9 @@ const historyData = [
     { name: "日本農民組合結成", year: 1922, nextFlow: "様々な社会運動が合流していく中で、本格的な社会主義・共産主義政党を目指して…" },
     { name: "日本共産党結成", year: 1922, nextFlow: "国内の革新運動が激化するなか、世界ではロシアを中心とした巨大な国家連合が誕生し…" },
     { name: "ソ連成立", year: 1922, nextFlow: "世界初の社会主義国家が正式に誕生。一方、イタリアではこれに対抗する右派勢力が台頭し…" },
-    { name: "イタリアのファシスト政権誕生", year: 1922, nextFlow: "ムッソリーニが権力を握り世界に緊張が走るなか、日本を未曾有の大災害が襲い…" },
+    { name: "イタリアのファシスト政権誕生", year: 1922, nextFlow: "ムッソリーニが権力を握り世界に緊張が走るなか、日本を未著有の大災害が襲い…" },
     { name: "関東大震災", year: 1923, nextFlow: "首都圏が壊滅的な打撃を受け、経済が混乱。その復興の最中、イギリスでは政権交代が起き…" },
-    { name: "イギリスで労働党内閣（第1次）", year: 1924, nextFlow: "世界の民主化が進むなか、日本でも再び政党政治を取り戻そうとする運動が実を結び…" },
+    { name: "イギリスで労働党内閣（第1次）", year: 1924, nextFlow: "世界の民主化が進むなか、日本でも再び政党政治を取り戻しようとする運動が実を結び…" },
     { name: "第二次護憲運動", year: 1924, nextFlow: "加藤高明内閣が誕生し、「憲政の常道」が確立。これにより、悲願の選挙法改正と、それを取り締まる法が同時にでき…" },
     { name: "普通選挙法・治安維持法制定", year: 1925, nextFlow: "25歳以上の全男子に選挙権が与えられる一方、震災手形の処理の失敗から銀行が次々と倒れ…" },
     { name: "金融恐慌", year: 1927, nextFlow: "経済がパニックに陥る一方、お隣の中国では、孫文の遺志を継いだ勢力がまとまり…" },
@@ -321,6 +353,7 @@ let userAnswers = [];
 function generateQuiz() {
     document.getElementById("result").style.display = "none";
     document.getElementById("explanation").style.display = "none";
+    document.getElementById("text-output-area").style.display = "none";
     userAnswers = [];
     updateAnswerDisplay();
     
@@ -386,6 +419,8 @@ function updateAnswerDisplay() {
 function checkAnswer() {
     let resultDiv = document.getElementById("result");
     let expDiv = document.getElementById("explanation");
+    let outputArea = document.getElementById("text-output-area");
+    let outputBox = document.getElementById("text-output-box");
     
     if (userAnswers.length < 4) {
         alert("選択肢を4つすべて選んでから答え合わせをしてください。");
@@ -403,20 +438,23 @@ function checkAnswer() {
     }
     resultDiv.style.display = "block";
     
-    // 【強化ポイント】時代の流れを紡ぐ自動ジェネレーター
+    // 【アップデート】「できごと→できごと…」の並びを動的にテキスト化
     let sorted = [...currentSelection].sort((a, b) => a.year - b.year);
-    let expHtml = "<div class='flow-title'>🧭 この4つの時代の流れ（因果関係）</div>";
+    let flowText = sorted.map(item => item.name).join("→");
     
+    // コピー用テキストエリアに出力
+    outputBox.value = `回答:${userAnsStr}、正当:${correctOrder}（${flowText}）`;
+    outputArea.style.display = "block";
+    
+    // 時代の流れ解説生成
+    let expHtml = "<div class='flow-title'>🧭 この4つの時代の流れ（因果関係）</div>";
     sorted.forEach((item, index) => {
-        // 各出来事のボックス
         expHtml += `
             <div class="flow-step">
                 <span class="year">${item.year}年</span>
                 <span class="name">${item.name}</span>
             </div>
         `;
-        
-        // 最後の出来事以外には、次のステップへの矢印と解説を挟む
         if (index < sorted.length - 1) {
             expHtml += `
                 <div class="flow-arrow">
