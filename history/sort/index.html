@@ -1,0 +1,341 @@
+<!-- Created by Gemini! -->
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>歴史並び替えクイズ</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        p.instruction {
+            color: #666;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .quiz-box {
+            background: #edf2f7;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .quiz-item {
+            background: #fff;
+            padding: 12px 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border-left: 5px solid #3182ce;
+            font-weight: bold;
+            font-size: 18px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .quiz-item span {
+            display: inline-block;
+            background: #3182ce;
+            color: white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            text-align: center;
+            line-height: 28px;
+            margin-right: 15px;
+            font-size: 16px;
+        }
+        .input-area {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .input-area input {
+            width: 50px;
+            height: 50px;
+            font-size: 22px;
+            text-align: center;
+            border: 2px solid #cbd5e0;
+            border-radius: 8px;
+            text-transform: uppercase;
+        }
+        .input-area input:focus {
+            outline: none;
+            border-color: #3182ce;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-submit { background: #48bb78; color: white; }
+        .btn-submit:hover { background: #38a169; }
+        .btn-next { background: #4299e1; color: white; }
+        .btn-next:hover { background: #3182ce; }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+            font-size: 18px;
+        }
+        .correct { background: #c6f6d5; color: #22543d; }
+        .incorrect { background: #fed7d7; color: #742a2a; }
+        
+        .explanation {
+            margin-top: 15px;
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            display: none;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>歴史出来事 並び替えクイズ</h1>
+    <p class="instruction">次の4つの出来事を、**古い順（時系列）**に並び替えて記号で答えなさい。</p>
+    
+    <div class="quiz-box" id="quiz-box">
+        </div>
+    
+    <div class="input-area">
+        <input type="text" id="ans1" maxlength="1" oninput="moveFocus(this, 'ans2')">
+        <input type="text" id="ans2" maxlength="1" oninput="moveFocus(this, 'ans3')">
+        <input type="text" id="ans3" maxlength="1" oninput="moveFocus(this, 'ans4')">
+        <input type="text" id="ans4" maxlength="1" oninput="moveFocus(this, '')">
+    </div>
+    
+    <div class="btn-group">
+        <button class="btn-submit" onclick="checkAnswer()">答え合わせ</button>
+        <button class="btn-next" onclick="generateQuiz()">次の問題</button>
+    </div>
+    
+    <div class="result" id="result"></div>
+    <div class="explanation" id="explanation"></div>
+</div>
+
+<script>
+// ご提示いただいたデータをすべて漢字・年号付きのリストに変換（年代順）
+const historyData = [
+    { name: "鹿鳴館（開館）", year: 1883 },
+    { name: "甲午農民戦争", year: 1894 },
+    { name: "日英通商航海条約（調印）", year: 1894 },
+    { name: "日清戦争", year: 1894 },
+    { name: "下関条約", year: 1895 },
+    { name: "三国干渉", year: 1895 },
+    { name: "大韓帝国成立", year: 1897 },
+    { name: "立憲政友会結成", year: 1900 },
+    { name: "義和団事件", year: 1900 },
+    { name: "日英同盟", year: 1902 },
+    { name: "日露戦争", year: 1904 },
+    { name: "「君死にたまふことなかれ」発表", year: 1904 },
+    { name: "ポーツマス条約", year: 1905 },
+    { name: "南満州鉄道（満鉄）設立", year: 1906 },
+    { name: "韓国統監府設置（※後の総督府）", year: 1906 },
+    { name: "韓国併合", year: 1910 },
+    { name: "関税自主権の完全回復", year: 1911 },
+    { name: "辛亥革命", year: 1911 },
+    { name: "中華民国成立", year: 1912 },
+    { name: "清の滅亡", year: 1912 },
+    { name: "第一次護憲運動", year: 1912 },
+    { name: "三国同盟（※結成は1882年だが、大戦期文脈を考慮）", year: 1882 },
+    { name: "三国協商", year: 1907 },
+    { name: "第一次世界大戦", year: 1914 },
+    { name: "二十一カ条の要求", year: 1915 },
+    { name: "ロシア革命", year: 1917 },
+    { name: "シベリア出兵", year: 1918 },
+    { name: "米騒動", year: 1918 },
+    { name: "原敬が政党内閣をつくる", year: 1918 },
+    { name: "第一次世界大戦終戦", year: 1918 },
+    { name: "パリ講和会議", year: 1919 },
+    { name: "三・一独立運動", year: 1919 },
+    { name: "五・四運動", year: 1919 },
+    { name: "ベルサイユ条約", year: 1919 },
+    { name: "ワイマール憲法", year: 1919 },
+    { name: "国際連盟（発足）", year: 1920 },
+    { name: "新婦人協会結成", year: 1920 },
+    { name: "第1回メーデー", year: 1920 },
+    { name: "ワシントン会議", year: 1921 },
+    { name: "日本労働総同盟", year: 1921 },
+    { name: "全国水平社創立", year: 1922 },
+    { name: "日本農民組合結成", year: 1922 },
+    { name: "日本共産党結成", year: 1922 },
+    { name: "ソ連（ソビエト社会主義共和国連邦）成立", year: 1922 },
+    { name: "イタリアのファシスト政権誕生", year: 1922 },
+    { name: "関東大震災", year: 1923 },
+    { name: "イギリスで労働党内閣（第1次）", year: 1924 },
+    { name: "第二次護憲運動", year: 1924 },
+    { name: "普通選挙法・治安維持法制定", year: 1925 },
+    { name: "金融恐慌", year: 1927 },
+    { name: "中国国民政府（南京）", year: 1927 },
+    { name: "第1次五カ年計画（ソ連）", year: 1928 },
+    { name: "世界恐慌", year: 1929 },
+    { name: "北海道アイヌ協会設立", year: 1930 },
+    { name: "ロンドン海軍軍縮条約", year: 1930 },
+    { name: "昭和恐慌", year: 1930 },
+    { name: "柳条湖事件", year: 1931 },
+    { name: "満州事変", year: 1931 },
+    { name: "満州国建国", year: 1932 },
+    { name: "五・一五事件", year: 1932 },
+    { name: "日本が国連（国際連盟）脱退", year: 1933 },
+    { name: "ニューディール政策開始", year: 1933 },
+    { name: "ヒトラーが首相になる", year: 1933 },
+    { name: "イタリアがエチオピアを征服", year: 1936 },
+    { name: "二・二六事件", year: 1936 },
+    { name: "日独防共協定", year: 1936 },
+    { name: "盧溝橋事件", year: 1937 },
+    { name: "日中戦争が起こる", year: 1937 },
+    { name: "国家総動員法", year: 1938 },
+    { name: "独ソ不可侵条約", year: 1939 },
+    { name: "第二次世界大戦（ポーランド侵略）", year: 1939 },
+    { name: "大政翼賛会", year: 1940 },
+    { name: "フランスが降伏", year: 1940 },
+    { name: "日独伊三国同盟", year: 1940 },
+    { name: "小学校が国民学校となる", year: 1941 },
+    { name: "日ソ中立条約", year: 1941 },
+    { name: "ドイツがソ連侵攻", year: 1941 },
+    { name: "大西洋憲章", year: 1941 },
+    { name: "太平洋戦争", year: 1941 },
+    { name: "ミッドウェー海戦", year: 1942 },
+    { name: "イタリアが降伏", year: 1943 },
+    { name: "サイパン島陥落", year: 1944 },
+    { name: "東条内閣退陣", year: 1944 },
+    { name: "東京大空襲", year: 1945 },
+    { name: "沖縄戦", year: 1945 },
+    { name: "ドイツ降伏", year: 1945 },
+    { name: "広島に原爆", year: 1945 },
+    { name: "ソ連参戦", year: 1945 },
+    { name: "長崎に原爆", year: 1945 },
+    { name: "日本が降伏（ポツダム宣言受諾発表）", year: 1945 },
+    { name: "玉音放送", year: 1945 }
+];
+
+let currentSelection = [];
+let correctOrder = "";
+
+// クイズの生成
+function generateQuiz() {
+    // 画面のリセット
+    document.getElementById("result").style.display = "none";
+    document.getElementById("explanation").style.display = "none";
+    for(let i=1; i<=4; i++) {
+        document.getElementById("ans" + i).value = "";
+    }
+    
+    // 全データからランダムに4つ重複なしで選ぶ
+    let shuffled = [...historyData].sort(() => 0.5 - Math.random());
+    currentSelection = shuffled.slice(0, 4);
+    
+    // 選ばれた4つを正しい年代順にソートして正解パターンを作る
+    let sortedSelection = [...currentSelection].sort((a, b) => a.year - b.year);
+    
+    // 画面表示用に選択肢をシャッフル（記号 A, B, C, D を割り振る）
+    let labels = ["A", "B", "C", "D"];
+    let displayItems = [];
+    
+    for(let i=0; i<4; i++) {
+        displayItems.push({
+            label: labels[i],
+            name: currentSelection[i].name,
+            year: currentSelection[i].year
+        });
+    }
+    
+    // 正解の記号順（文字列）を割り出す
+    correctOrder = sortedSelection.map(sortedItem => {
+        return displayItems.find(dispItem => dispItem.name === sortedItem.name).label;
+    }).join("");
+    
+    // HTMLへの出力
+    let quizBox = document.getElementById("quiz-box");
+    quizBox.innerHTML = "";
+    displayItems.forEach(item => {
+        quizBox.innerHTML += `<div class="quiz-item"><span>${item.label}</span> ${item.name}</div>`;
+    });
+}
+
+// 答え合わせ
+function checkAnswer() {
+    let u1 = document.getElementById("ans1").value.toUpperCase();
+    let u2 = document.getElementById("ans2").value.toUpperCase();
+    let u3 = document.getElementById("ans3").value.toUpperCase();
+    let u4 = document.getElementById("ans4").value.toUpperCase();
+    let userAns = u1 + u2 + u3 + u4;
+    
+    let resultDiv = document.getElementById("result");
+    let expDiv = document.getElementById("explanation");
+    
+    if(userAns.length < 4) {
+        alert("A, B, C, D の4つの空欄をすべて埋めてください。");
+        return;
+    }
+    
+    if(userAns === correctOrder) {
+        resultDiv.className = "result correct";
+        resultDiv.innerHTML = "🎉 正解です！";
+    } else {
+        resultDiv.className = "result incorrect";
+        resultDiv.innerHTML = `❌ 不正解... 正解は「 <strong>${correctOrder}</strong> 」です。`;
+    }
+    resultDiv.style.display = "block";
+    
+    // 解説（年号順）の表示
+    let sorted = [...currentSelection].sort((a, b) => a.year - b.year);
+    let expHtml = "<strong>【年代順の並び】</strong><br>";
+    sorted.forEach((item, index) => {
+        expHtml += `${index + 1}. ${item.name} (${item.year}年)<br>`;
+    });
+    expDiv.innerHTML = expHtml;
+    expDiv.style.display = "block";
+}
+
+// 入力時に自動で次の枠にフォーカスを移す設定
+function moveFocus(current, nextId) {
+    if (current.value.length >= 1 && nextId !== "") {
+        document.getElementById(nextId).focus();
+    }
+}
+
+// 初回起動
+window.onload = generateQuiz;
+</script>
+
+</body>
+</html>
