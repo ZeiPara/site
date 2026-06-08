@@ -38,21 +38,39 @@
         }
         .quiz-box {
             background: #edf2f7;
-            padding: 20px;
+            padding: 15px;
             border-radius: 8px;
             margin-bottom: 20px;
         }
-        .quiz-item {
+        /* 選択肢ボタンのスタイル */
+        .quiz-btn {
+            display: flex;
+            align-items: center;
+            width: 100%;
             background: #fff;
             padding: 12px 15px;
             margin: 10px 0;
             border-radius: 6px;
+            border: 1px solid #cbd5e0;
             border-left: 5px solid #3182ce;
             font-weight: bold;
             font-size: 18px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
         }
-        .quiz-item span {
+        .quiz-btn:hover {
+            background: #f7fafc;
+            transform: translateY(-1px);
+        }
+        /* 選択されたときのスタイル */
+        .quiz-btn.selected {
+            background: #cbd5e0;
+            border-left-color: #4a5568;
+            opacity: 0.7;
+        }
+        .quiz-btn span.label {
             display: inline-block;
             background: #3182ce;
             color: white;
@@ -64,31 +82,43 @@
             margin-right: 15px;
             font-size: 16px;
         }
-        .input-area {
+        .quiz-btn.selected span.label {
+            background: #4a5568;
+        }
+        /* 回答表示エリア */
+        .answer-area {
             display: flex;
             justify-content: center;
+            align-items: center;
             gap: 15px;
-            margin-bottom: 20px;
+            margin: 25px 0;
+            min-height: 60px;
         }
-        .input-area input {
+        .answer-box {
             width: 50px;
             height: 50px;
-            font-size: 22px;
-            text-align: center;
-            border: 2px solid #cbd5e0;
+            border: 2px dashed #cbd5e0;
             border-radius: 8px;
-            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: bold;
+            color: #2b6cb0;
+            background: #fff;
+            transition: all 0.2s;
         }
-        .input-area input:focus {
-            outline: none;
+        .answer-box.filled {
+            border-style: solid;
             border-color: #3182ce;
+            background: #ebf8ff;
         }
         .btn-group {
             display: flex;
             gap: 10px;
             justify-content: center;
         }
-        button {
+        button.action-btn {
             padding: 12px 24px;
             font-size: 16px;
             font-weight: bold;
@@ -130,21 +160,23 @@
 
 <div class="container">
     <h1>歴史出来事 並び替えクイズ</h1>
-    <p class="instruction">次の4つの出来事を、**古い順（時系列）**に並び替えて記号で答えなさい。</p>
+    <p class="instruction">下の選択肢を**古い順（時系列）**にタップして並び替えてください。<br>（もう一度押すとキャンセルできます）</p>
     
     <div class="quiz-box" id="quiz-box">
-        </div>
+        <!-- ここに選択肢ボタンが動的に生成されます -->
+    </div>
     
-    <div class="input-area">
-        <input type="text" id="ans1" maxlength="1" oninput="moveFocus(this, 'ans2')">
-        <input type="text" id="ans2" maxlength="1" oninput="moveFocus(this, 'ans3')">
-        <input type="text" id="ans3" maxlength="1" oninput="moveFocus(this, 'ans4')">
-        <input type="text" id="ans4" maxlength="1" oninput="moveFocus(this, '')">
+    <!-- あなたの選択順を表示するエリア -->
+    <div class="answer-area">
+        <div class="answer-box" id="box0"></div>
+        <div class="answer-box" id="box1"></div>
+        <div class="answer-box" id="box2"></div>
+        <div class="answer-box" id="box3"></div>
     </div>
     
     <div class="btn-group">
-        <button class="btn-submit" onclick="checkAnswer()">答え合わせ</button>
-        <button class="btn-next" onclick="generateQuiz()">次の問題</button>
+        <button class="action-btn btn-submit" onclick="checkAnswer()">答え合わせ</button>
+        <button class="action-btn btn-next" onclick="generateQuiz()">次の問題</button>
     </div>
     
     <div class="result" id="result"></div>
@@ -152,7 +184,7 @@
 </div>
 
 <script>
-// ご提示いただいたデータをすべて漢字・年号付きのリストに変換（年代順）
+// 全データリスト（漢字・年代順）
 const historyData = [
     { name: "鹿鳴館（開館）", year: 1883 },
     { name: "甲午農民戦争", year: 1894 },
@@ -175,7 +207,7 @@ const historyData = [
     { name: "中華民国成立", year: 1912 },
     { name: "清の滅亡", year: 1912 },
     { name: "第一次護憲運動", year: 1912 },
-    { name: "三国同盟（※結成は1882年だが、大戦期文脈を考慮）", year: 1882 },
+    { name: "三国同盟（※結成は1882年）", year: 1882 },
     { name: "三国協商", year: 1907 },
     { name: "第一次世界大戦", year: 1914 },
     { name: "二十一カ条の要求", year: 1915 },
@@ -249,24 +281,23 @@ const historyData = [
 
 let currentSelection = [];
 let correctOrder = "";
+let userAnswers = []; // ユーザーが選択した記号の配列
 
 // クイズの生成
 function generateQuiz() {
-    // 画面のリセット
+    // リセット
     document.getElementById("result").style.display = "none";
     document.getElementById("explanation").style.display = "none";
-    for(let i=1; i<=4; i++) {
-        document.getElementById("ans" + i).value = "";
-    }
+    userAnswers = [];
+    updateAnswerDisplay();
     
-    // 全データからランダムに4つ重複なしで選ぶ
+    // ランダムに4つ抽出
     let shuffled = [...historyData].sort(() => 0.5 - Math.random());
     currentSelection = shuffled.slice(0, 4);
     
-    // 選ばれた4つを正しい年代順にソートして正解パターンを作る
+    // 正解の年代順ソート
     let sortedSelection = [...currentSelection].sort((a, b) => a.year - b.year);
     
-    // 画面表示用に選択肢をシャッフル（記号 A, B, C, D を割り振る）
     let labels = ["A", "B", "C", "D"];
     let displayItems = [];
     
@@ -278,47 +309,80 @@ function generateQuiz() {
         });
     }
     
-    // 正解の記号順（文字列）を割り出す
+    // 正解の文字列（例："BDAC"）を作成
     correctOrder = sortedSelection.map(sortedItem => {
         return displayItems.find(dispItem => dispItem.name === sortedItem.name).label;
     }).join("");
     
-    // HTMLへの出力
+    // ボタンの配置
     let quizBox = document.getElementById("quiz-box");
     quizBox.innerHTML = "";
     displayItems.forEach(item => {
-        quizBox.innerHTML += `<div class="quiz-item"><span>${item.label}</span> ${item.name}</div>`;
+        quizBox.innerHTML += `
+            <button class="quiz-btn" id="btn-${item.label}" onclick="selectItem('${item.label}')">
+                <span class="label">${item.label}</span> ${item.name}
+            </button>`;
     });
+}
+
+// 選択肢がクリックされた時の処理
+function selectItem(label) {
+    let btn = document.getElementById(`btn-${label}`);
+    let index = userAnswers.indexOf(label);
+    
+    if (index > -1) {
+        // すでに選ばれている場合は「解除」
+        userAnswers.splice(index, 1);
+        btn.classList.remove("selected");
+    } else {
+        // まだ選ばれていない場合は「追加」（最大4つまで）
+        if (userAnswers.length < 4) {
+            userAnswers.push(label);
+            btn.classList.add("selected");
+        }
+    }
+    // 上部の回答状況表示を更新
+    updateAnswerDisplay();
+}
+
+// 回答欄の表示更新
+function updateAnswerDisplay() {
+    for (let i = 0; i < 4; i++) {
+        let box = document.getElementById(`box${i}`);
+        if (userAnswers[i]) {
+            box.innerText = userAnswers[i];
+            box.classList.add("filled");
+        } else {
+            box.innerText = "";
+            box.classList.remove("filled");
+        }
+    }
 }
 
 // 答え合わせ
 function checkAnswer() {
-    let u1 = document.getElementById("ans1").value.toUpperCase();
-    let u2 = document.getElementById("ans2").value.toUpperCase();
-    let u3 = document.getElementById("ans3").value.toUpperCase();
-    let u4 = document.getElementById("ans4").value.toUpperCase();
-    let userAns = u1 + u2 + u3 + u4;
-    
     let resultDiv = document.getElementById("result");
     let expDiv = document.getElementById("explanation");
     
-    if(userAns.length < 4) {
-        alert("A, B, C, D の4つの空欄をすべて埋めてください。");
+    if (userAnswers.length < 4) {
+        alert("選択肢を4つすべて選んでから答え合わせをしてください。");
         return;
     }
     
-    if(userAns === correctOrder) {
+    let userAnsStr = userAnswers.join("");
+    
+    if (userAnsStr === correctOrder) {
         resultDiv.className = "result correct";
-        resultDiv.innerHTML = "🎉 正解です！";
+        resultDiv.innerHTML = "🎉 正解です！素晴らしい！";
     } else {
         resultDiv.className = "result incorrect";
         resultDiv.innerHTML = `❌ 不正解... 正解は「 <strong>${correctOrder}</strong> 」です。`;
     }
     resultDiv.style.display = "block";
     
-    // 解説（年号順）の表示
+    // 解説（年号順一覧）
     let sorted = [...currentSelection].sort((a, b) => a.year - b.year);
-    let expHtml = "<strong>【年代順の並び】</strong><br>";
+    let expHtml = "<strong>【正しい年代順】</strong><br>";
     sorted.forEach((item, index) => {
         expHtml += `${index + 1}. ${item.name} (${item.year}年)<br>`;
     });
@@ -326,14 +390,7 @@ function checkAnswer() {
     expDiv.style.display = "block";
 }
 
-// 入力時に自動で次の枠にフォーカスを移す設定
-function moveFocus(current, nextId) {
-    if (current.value.length >= 1 && nextId !== "") {
-        document.getElementById(nextId).focus();
-    }
-}
-
-// 初回起動
+// ページ読み込み時にクイズを生成
 window.onload = generateQuiz;
 </script>
 
