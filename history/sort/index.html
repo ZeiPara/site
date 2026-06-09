@@ -448,7 +448,7 @@ function checkAnswer() {
     let correctFlowText = sorted.map(item => item.name).join("→");
     
     // 指定フォーマットに出力テキストを流し込む
-    outputBox.value = `回答:${userAnsStr}（${userFlowText}）、正当:${correctOrder}（${correctFlowText}）これについて解説して`;
+    outputBox.value = `回答:${userAnsStr}（${userFlowText}）、正当:${correctOrder}（${correctFlowText}）`;
     outputArea.style.display = "block";
     
     let expHtml = "<div class='flow-title'>🧭 この4つの時代の流れ（因果関係）</div>";
