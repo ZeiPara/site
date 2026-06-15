@@ -1,0 +1,55 @@
+/* またGemini */
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>HTML/CSSを画像として保存</title>
+    <!-- html2canvasライブラリの読み込み -->
+    <script src="https://cloudflare.com"></script>
+    <style>
+        /* 結合したいエリアの外枠 */
+        #capture-area {
+            position: relative;
+            width: 500px;
+            height: 400px;
+            background-color: #ffffff;
+            border: 1px solid #ccc;
+        }
+        /* 座標指定で画像を配置 */
+        .img1 { position: absolute; top: 30px; left: 50px; width: 200px; }
+        .img2 { position: absolute; top: 150px; left: 200px; width: 250px; z-index: 2; }
+    </style>
+</head>
+<body>
+
+    <!-- 1. 画像を配置するエリア -->
+    <div id="capture-area">
+        <img src="image1.png" class="img1" crossorigin="anonymous">
+        <img src="image2.png" class="img2" crossorigin="anonymous">
+    </div>
+
+    <br>
+    <!-- 2. 保存用ボタン -->
+    <button id="download-btn">1枚の画像としてダウンロード</button>
+
+    <script>
+        document.getElementById('download-btn').addEventListener('click', () => {
+            const area = document.getElementById('capture-area');
+            
+            // HTMLエリアをCanvasに変換
+            html2canvas(area, { useCORS: true }).then(canvas => {
+                // CanvasをPNGのデータURLに変換
+                const imageType = 'image/png';
+                const dataUrl = canvas.toDataURL(imageType);
+                
+                // 自動ダウンロード用のリンクを作成してクリック
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = 'combined-image.png';
+                link.click();
+            });
+        });
+    </script>
+</body>
+</html>
