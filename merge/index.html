@@ -4,52 +4,114 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>HTML/CSSを画像として保存</title>
-    <!-- html2canvasライブラリの読み込み -->
-    <script src="https://cloudflare.com"></script>
+    <title>画像アップロード・座標指定結合</title>
     <style>
-        /* 結合したいエリアの外枠 */
-        #capture-area {
-            position: relative;
-            width: 500px;
-            height: 400px;
-            background-color: #ffffff;
-            border: 1px solid #ccc;
-        }
-        /* 座標指定で画像を配置 */
-        .img1 { position: absolute; top: 30px; left: 50px; width: 200px; }
-        .img2 { position: absolute; top: 150px; left: 200px; width: 250px; z-index: 2; }
+        body { font-family: sans-serif; padding: 20px; }
+        .controls { margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px; }
+        .control-group { margin-bottom: 10px; }
+        label { display: inline-block; width: 120px; font-weight: bold; }
+        input[type="number"] { width: 80px; padding: 3px; margin-right: 15px; }
+        button { padding: 8px 15px; font-size: 14px; cursor: pointer; }
+        canvas { border: 2px dashed #ccc; background-color: #fff; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-    <!-- 1. 画像を配置するエリア -->
-    <div id="capture-area">
-        <img src="image1.png" class="img1" crossorigin="anonymous">
-        <img src="image2.png" class="img2" crossorigin="anonymous">
+    <h2>画像アップロード・座標指定結合</h2>
+
+    <div class="controls">
+        <!-- 画像1の設定 -->
+        <div class="control-group">
+            <label>画像1 (背景側):</label>
+            <input type="file" id="file1" accept="image/*">
+            X: <input type="number" id="x1" value="0">
+            Y: <input type="number" id="y1" value="0">
+        </div>
+
+        <!-- 画像2の設定 -->
+        <div class="control-group">
+            <label>画像2 (手前側):</label>
+            <input type="file" id="file2" accept="image/*">
+            X: <input type="number" id="x2" value="100">
+            Y: <input type="number" id="y2" value="100">
+        </div>
+
+        <!-- アクションボタン -->
+        <button id="preview-btn">プレビュー更新</button>
+        <button id="download-btn" style="background-color: #4CAF50; color: white; border: none;">PNGでダウンロード</button>
     </div>
 
-    <br>
-    <!-- 2. 保存用ボタン -->
-    <button id="download-btn">1枚の画像としてダウンロード</button>
+    <!-- 結合結果を表示するキャンバス (幅800px、高さ600px) -->
+    <canvas id="canvas" width="800" height="600"></canvas>
 
     <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // 画像オブジェクトの準備
+        let img1 = null;
+        let img2 = null;
+
+        // 初期状態のキャンバスを描画
+        clearCanvas();
+
+        // キャンバスを白で初期化する関数
+        function clearCanvas() {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#888888';
+            ctx.font = '16px sans-serif';
+            ctx.fillText('画像をアップロードして「プレビュー更新」を押してください', 20, 40);
+        }
+
+        // ファイルが選択されたら画像を読み込む処理 (画像1)
+        document.getElementById('file1').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            img1 = new Image();
+            img1.src = URL.createObjectURL(file);
+        });
+
+        // ファイルが選択されたら画像を読み込む処理 (画像2)
+        document.getElementById('file2').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            img2 = new Image();
+            img2.src = URL.createObjectURL(file);
+        });
+
+        // プレビュー更新ボタンの処理
+        document.getElementById('preview-btn').addEventListener('click', () => {
+            // キャンバスを一度真っ白にする
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 入力された座標を取得
+            const x1 = parseInt(document.getElementById('x1').value) || 0;
+            const y1 = parseInt(document.getElementById('y1').value) || 0;
+            const x2 = parseInt(document.getElementById('x2').value) || 0;
+            const y2 = parseInt(document.getElementById('y2').value) || 0;
+
+            // 画像1が読み込まれていれば描画
+            if (img1) {
+                ctx.drawImage(img1, x1, y1);
+            }
+
+            // 画像2が読み込まれていれば描画（後に描画した方が上に重なる）
+            if (img2) {
+                ctx.drawImage(img2, x2, y2);
+            }
+        });
+
+        // ダウンロードボタンの処理
         document.getElementById('download-btn').addEventListener('click', () => {
-            const area = document.getElementById('capture-area');
-            
-            // HTMLエリアをCanvasに変換
-            html2canvas(area, { useCORS: true }).then(canvas => {
-                // CanvasをPNGのデータURLに変換
-                const imageType = 'image/png';
-                const dataUrl = canvas.toDataURL(imageType);
-                
-                // 自動ダウンロード用のリンクを作成してクリック
-                const link = document.createElement('a');
-                link.href = dataUrl;
-                link.download = 'combined-image.png';
-                link.click();
-            });
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL('image/png');
+            link.download = 'combined-upload.png';
+            link.click();
         });
     </script>
+
 </body>
 </html>
+
