@@ -10,6 +10,20 @@
     <div class="result"></div>
 
     <script>
+      const urlParams = new URLSearchParams(window.location.search);
+  
+      const paramOutput = urlParams.get('output');
+  
+      if (paramOutput) {
+        document.getElementById('output').value = paramOutput;
+      }
+
+      const paramTime = urlParams.get('time');
+  
+      if (paramTime) {
+        document.getElementById('time').value = paramTime;
+      }
+      
       function clicked() {
         const output = Number(document.querySelector("#output").value);
         const time = Number(document.querySelector("#time").value);
