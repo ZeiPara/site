@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>P4DD</title>
+  </head>
+  <body>
+    <label>出力</label><input type="number" id="output" min="0" max="100" />
+    <label>時間</label><input type="number" id="time" min="0" />
+    <button value="計算" onclick="clicked()" />
+    <div class="result"></div>
+    <script>
+      function clicked() {
+        const output = Number(document.querySelector("#output").value);
+        const time = Number(document.querySelector("#time").value);
+        const inner = 1 - (output / 100) ^ 2;
+        const result = time * 1 / Math.sqrt(inner);
+        const result_zone = document.querySelector(".result");
+        resule_zone.innerHTML = result + "秒";
+      }
+    </script>
+  </body>
+</html>
