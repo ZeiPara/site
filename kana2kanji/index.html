@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>リアルタイムかな漢字変換ツール</title>
+    <title>リアルタイムかな漢字変換</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
-        textarea { width: 100%; height: 100px; margin-bottom: 10px; padding: 10px; box-sizing: border-box; font-size: 16px; }
+        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; background-color: #f7f9fa; color: #333; }
+        h1 { font-size: 24px; color: #007bff; text-align: center; }
+        textarea { width: 100%; height: 120px; margin-bottom: 10px; padding: 12px; box-sizing: border-box; font-size: 16px; border: 2px solid #ccc; border-radius: 8px; resize: vertical; }
+        textarea:focus { border-color: #007bff; outline: none; }
         #status { font-size: 14px; color: #666; margin-bottom: 5px; min-height: 20px; }
-        #result { padding: 15px; background: #f0f0f0; border-radius: 5px; min-height: 50px; white-space: pre-wrap; font-size: 18px; font-weight: bold; }
+        #result { padding: 15px; background: white; border: 2px solid #e2e8f0; border-radius: 8px; min-height: 60px; white-space: pre-wrap; font-size: 18px; line-height: 1.6; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     </style>
 </head>
 <body>
@@ -16,7 +18,6 @@
     <h1>リアルタイムかな漢字変換</h1>
     
     <p>ひらがなを入力してください（タイピングが止まると自動変換します）：</p>
-    <!-- ⚠️ 修正ポイント: 入力されるたびに「handleInput()」を実行する -->
     <textarea id="inputText" oninput="handleInput()" placeholder="例：をつかってひらがなをかんじにへんかんするさいとをつくりたい"></textarea>
     
     <div id="status"></div>
@@ -24,24 +25,20 @@
     <div id="result">ここに結果が表示されます</div>
 
     <script>
-        let timeoutId = null; // タイマーのIDを記憶する変数
+        let timeoutId = null;
 
-        // 1. 入力を監視する関数（デバウンス処理）
         function handleInput() {
             const statusDiv = document.getElementById('status');
-            
-            // ユーザーが文字を打っている間は、前のタイマーをキャンセルする
             clearTimeout(timeoutId);
 
             statusDiv.innerText = "入力中...";
 
-            // ⚠️ 修正ポイント: タイピングが止まってから「500ミリ秒（0.5秒）」後に変換を実行
+            // タイピングが止まってから0.5秒後に変換を実行
             timeoutId = setTimeout(() => {
                 convertText();
             }, 500); 
         }
 
-        // 2. 実際にAPIを叩いて変換する関数
         async function convertText() {
             const inputText = document.getElementById('inputText').value;
             const resultDiv = document.getElementById('result');
@@ -56,19 +53,26 @@
             statusDiv.innerText = "変換中...";
 
             try {
+                // 1. 本来叩きたいGoogle APIのURLを組み立てる
                 const encodedText = encodeURIComponent(inputText);
-                const langpair = encodeURIComponent("ja-Hira|ja"); 
-                const apiUrl = `https://google.com{langpair}&text=${encodedText}`;
+                const googleApiUrl = `https://google.com{encodedText}`;
 
-                const response = await fetch(apiUrl);
-                if (!response.ok) throw new Error("APIエラー");
+                // 2. ⚠️ 解決のポイント: CORS制限を回避する無料プロキシ「AllOrigins」を経由させる
+                const proxyUrl = `https://allorigins.win{encodeURIComponent(googleApiUrl)}`;
 
-                const data = await response.json();
+                const response = await fetch(proxyUrl);
+                if (!response.ok) throw new Error("通信エラーが発生しました");
+
+                // 3. プロキシから返ってきたデータを解析
+                const proxyData = await response.json();
+                
+                // AllOriginsは元のAPIの返却値を文字列(contents)として包んで返すので、それをJSONとしてパースする
+                const data = JSON.parse(proxyData.contents);
                 
                 let resultText = "";
                 for (const item of data) {
-                    if (item && item[0] && item[1] && item[1][0]) {
-                        resultText += item[1][0];
+                    if (item && item[1] && item[1][0]) {
+                        resultText += item[1][0]; // 最も有力な漢字候補を結合
                     }
                 }
 
@@ -77,7 +81,8 @@
 
             } catch (error) {
                 statusDiv.innerText = "エラーが発生しました";
-                resultDiv.innerText = `エラー: ${error.message}`;
+                resultDiv.innerText = `エラー詳細: ${error.message}`;
+                console.error(error);
             }
         }
     </script>
