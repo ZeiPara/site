@@ -11,10 +11,16 @@
       async function clicked() {
         const kana = document.querySelector("#kana");
         const content = kana.value;
-        const fetched = await fetch(`https://api.excelapi.org/language/kana2kanji?text=${content}`);
-        const result = await fetched.json();
-        const answer = document.querySelector("#answer");
-        answer.innerHTML = result;
+        try {
+          const fetched = await fetch(`https://api.excelapi.org/language/kana2kanji?text=${encodeURIComponent(content)}`);
+          const result = await fetched.json();
+          const answer = document.querySelector("#answer");
+          // resultはオブジェクトなので、適切なプロパティにアクセス
+          answer.textContent = JSON.stringify(result, null, 2);
+        } catch (error) {
+          console.error("エラー:", error);
+          document.querySelector("#answer").textContent = "エラーが発生しました";
+        }
       }
     </script>
   </body>
