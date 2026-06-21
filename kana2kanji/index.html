@@ -4,22 +4,38 @@
     <title>kana2kanji</title>
   </head>
   <body>
-    <input id="kana">
+    <input id="kana" placeholder="ひらがなを入力してください">
     <button onclick="clicked()">convert</button>
     <div id="answer"></div>
     <script>
       async function clicked() {
         const kana = document.querySelector("#kana");
         const content = kana.value;
+        const answer = document.querySelector("#answer");
+        
+        if (!content.trim()) {
+          answer.textContent = "テキストを入力してください";
+          return;
+        }
+        
         try {
+          answer.textContent = "変換中...";
           const fetched = await fetch(`https://api.excelapi.org/language/kana2kanji?text=${encodeURIComponent(content)}`);
+          
+          if (!fetched.ok) {
+            throw new Error(`HTTP Error: ${fetched.status}`);
+          }
+          
           const result = await fetched.json();
-          const answer = document.querySelector("#answer");
+          
+          // APIレスポンスをコンソールに出力してデバッグ
+          console.log("API Response:", result);
+          
           // resultはオブジェクトなので、適切なプロパティにアクセス
           answer.textContent = JSON.stringify(result, null, 2);
         } catch (error) {
           console.error("エラー:", error);
-          document.querySelector("#answer").textContent = "エラーが発生しました";
+          answer.textContent = `エラーが発生しました: ${error.message}`;
         }
       }
     </script>
