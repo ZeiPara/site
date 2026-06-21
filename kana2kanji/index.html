@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta charset="utf-8">
     <title>kana2kanji</title>
   </head>
   <body>
@@ -12,29 +13,30 @@
         const kana = document.querySelector("#kana");
         const content = kana.value;
         const answer = document.querySelector("#answer");
-        
+
         if (!content.trim()) {
           answer.textContent = "テキストを入力してください";
           return;
         }
-        
+
         try {
           answer.textContent = "変換中...";
-          const fetched = await fetch(`https://api.excelapi.org/language/kana2kanji?text=${encodeURIComponent(content)}`);
-          
+          const apiUrl = `https://api.excelapi.org/language/kana2kanji?text=${encodeURIComponent(content)}`;
+          // allorigins を経由して生の本文を取得
+          const proxy = "https://api.allorigins.win/raw?url=";
+          const fetched = await fetch(proxy + encodeURIComponent(apiUrl));
+
           if (!fetched.ok) {
-            throw new Error(`HTTPエラー: ${fetched.status}`);
+            const body = await fetched.text().catch(() => "(no body)");
+            throw new Error(`HTTPエラー: ${fetched.status} ${fetched.statusText} - ${body}`);
           }
-          
-          // APIはテキストを返すので、text()で取得
+
           const result = await fetched.text();
-          
           console.log("APIレスポンス:", result);
-          
           answer.textContent = result;
         } catch (error) {
-          console.error("エラー:", error);
-          answer.textContent = `エラーが発生しました: ${error.message}`;
+          console.error("エラー詳細:", error);
+          answer.textContent = `エラーが発生しました: ${error && error.message ? error.message : error}`;
         }
       }
     </script>
