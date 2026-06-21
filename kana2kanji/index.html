@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>かな漢字変換ツール</title>
+    <title>かな漢字変換ツール (Google API版)</title>
     <style>
         body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
         textarea { width: 100%; height: 100px; margin-bottom: 10px; padding: 10px; box-sizing: border-box; }
@@ -16,7 +16,7 @@
     <h1>ひらがな→漢字変換</h1>
     
     <p>ひらがなを入力してください：</p>
-    <textarea id="inputText" placeholder="ここにひらがなを入力（例：をつかってひらがなをかんじにへんかんするさいとをつくりたい）"></textarea>
+    <textarea id="inputText" placeholder="ここにひらがなを入力"></textarea>
     
     <button onclick="convertText()">変換する</button>
 
@@ -36,21 +36,23 @@
             resultDiv.innerText = "変換中...";
 
             try {
-                // ⚠️ ここがポイント：入力をURLエンコードしてAPIのURLを組み立てます
                 const encodedText = encodeURIComponent(inputText);
-                const apiUrl = `https://excelapi.org{encodedText}`;
+                // GoogleのIME変換APIを利用（CORSを回避可能）
+                const apiUrl = `https://google.com|ja&text=${encodedText}`;
 
-                // APIを呼び出してテキストとして結果を取得
                 const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error("APIの呼び出しに失敗しました");
+
+                const data = await response.json();
                 
-                if (!response.ok) {
-                    throw new Error(`エラーが発生しました (Status: ${response.status})`);
+                // Google APIのレスポンス（複雑な配列構造）をパースして文章に結合
+                let resultText = "";
+                for (const item of data) {
+                    // 最も尤度（もっともらしさ）が高い最初の変換候補を選択
+                    resultText += item[1][0]; 
                 }
 
-                const convertedText = await response.text();
-                
-                // 画面に変換結果を表示
-                resultDiv.innerText = convertedText;
+                resultDiv.innerText = resultText;
 
             } catch (error) {
                 resultDiv.innerText = `エラー: ${error.message}`;
