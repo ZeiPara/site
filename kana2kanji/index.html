@@ -23,16 +23,15 @@
           const fetched = await fetch(`https://api.excelapi.org/language/kana2kanji?text=${encodeURIComponent(content)}`);
           
           if (!fetched.ok) {
-            throw new Error(`HTTP Error: ${fetched.status}`);
+            throw new Error(`HTTPエラー: ${fetched.status}`);
           }
           
-          const result = await fetched.json();
+          // APIはテキストを返すので、text()で取得
+          const result = await fetched.text();
           
-          // APIレスポンスをコンソールに出力してデバッグ
-          console.log("API Response:", result);
+          console.log("APIレスポンス:", result);
           
-          // resultはオブジェクトなので、適切なプロパティにアクセス
-          answer.textContent = JSON.stringify(result, null, 2);
+          answer.textContent = result;
         } catch (error) {
           console.error("エラー:", error);
           answer.textContent = `エラーが発生しました: ${error.message}`;
