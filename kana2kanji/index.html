@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>kana2kanji</title>
+  </head>
+  <body>
+    <input id="kana">
+    <button onclick="clicked()">convert</button>
+    <div id="answer">
+    <script>
+      function clicked() {
+        const kana = document.querySelector("#kana");
+        const content = kana.value();
+        const fetched = await fetch(`https://api.excelapi.org/language/kana2kanji?text=${content}`);
+        const answer = document.quarySelector("#answer");
+        answer.innerHTML(fetched);
+      }
+    </script>
+  </body>
+</html>
