@@ -6,14 +6,15 @@
   <body>
     <input id="kana">
     <button onclick="clicked()">convert</button>
-    <div id="answer">
+    <div id="answer"></div>
     <script>
-      function clicked() {
+      async function clicked() {
         const kana = document.querySelector("#kana");
-        const content = kana.value();
+        const content = kana.value;
         const fetched = await fetch(`https://api.excelapi.org/language/kana2kanji?text=${content}`);
-        const answer = document.quarySelector("#answer");
-        answer.innerHTML(fetched);
+        const result = await fetched.json();
+        const answer = document.querySelector("#answer");
+        answer.innerHTML = result;
       }
     </script>
   </body>
