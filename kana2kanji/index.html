@@ -1,44 +1,62 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>kana2kanji</title>
-  </head>
-  <body>
-    <input id="kana" placeholder="ひらがなを入力してください">
-    <button onclick="clicked()">convert</button>
-    <div id="answer"></div>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>かな漢字変換ツール</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
+        textarea { width: 100%; height: 100px; margin-bottom: 10px; padding: 10px; box-sizing: border-box; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        #result { margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 5px; min-height: 50px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+
+    <h1>ひらがな→漢字変換</h1>
+    
+    <p>ひらがなを入力してください：</p>
+    <textarea id="inputText" placeholder="ここにひらがなを入力（例：をつかってひらがなをかんじにへんかんするさいとをつくりたい）"></textarea>
+    
+    <button onclick="convertText()">変換する</button>
+
+    <h3>変換結果：</h3>
+    <div id="result">ここに結果が表示されます</div>
+
     <script>
-      async function clicked() {
-        const kana = document.querySelector("#kana");
-        const content = kana.value;
-        const answer = document.querySelector("#answer");
+        async function convertText() {
+            const inputText = document.getElementById('inputText').value;
+            const resultDiv = document.getElementById('result');
 
-        if (!content.trim()) {
-          answer.textContent = "テキストを入力してください";
-          return;
+            if (!inputText) {
+                resultDiv.innerText = "文字を入力してください。";
+                return;
+            }
+
+            resultDiv.innerText = "変換中...";
+
+            try {
+                // ⚠️ ここがポイント：入力をURLエンコードしてAPIのURLを組み立てます
+                const encodedText = encodeURIComponent(inputText);
+                const apiUrl = `https://excelapi.org{encodedText}`;
+
+                // APIを呼び出してテキストとして結果を取得
+                const response = await fetch(apiUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`エラーが発生しました (Status: ${response.status})`);
+                }
+
+                const convertedText = await response.text();
+                
+                // 画面に変換結果を表示
+                resultDiv.innerText = convertedText;
+
+            } catch (error) {
+                resultDiv.innerText = `エラー: ${error.message}`;
+            }
         }
-
-        try {
-          answer.textContent = "変換中...";
-          const apiUrl = `https://api.excelapi.org/language/kana2kanji?text=${encodeURIComponent(content)}`;
-          // allorigins を経由して生の本文を取得
-          const proxy = "https://api.allorigins.win/raw?url=";
-          const fetched = await fetch(proxy + encodeURIComponent(apiUrl));
-
-          if (!fetched.ok) {
-            const body = await fetched.text().catch(() => "(no body)");
-            throw new Error(`HTTPエラー: ${fetched.status} ${fetched.statusText} - ${body}`);
-          }
-
-          const result = await fetched.text();
-          console.log("APIレスポンス:", result);
-          answer.textContent = result;
-        } catch (error) {
-          console.error("エラー詳細:", error);
-          answer.textContent = `エラーが発生しました: ${error && error.message ? error.message : error}`;
-        }
-      }
     </script>
-  </body>
+
+</body>
 </html>
