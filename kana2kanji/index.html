@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>リアルタイムかな漢字変換（GitHub Pages版）</title>
+    <title>リアルタイムかな漢字変換</title>
     <style>
         body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; background-color: #f7f9fa; color: #333; }
         h1 { font-size: 24px; color: #007bff; text-align: center; }
@@ -17,7 +17,7 @@
 
     <h1>リアルタイムかな漢字変換</h1>
     
-    <p>ひらがなを入力してください（GitHub Pages対応版）：</p>
+    <p>ひらがなを入力してください（タイピングが止まると自動変換します）：</p>
     <textarea id="inputText" oninput="handleInput()" placeholder="例：をつかってひらがなをかんじにへんかんするさいとをつくりたい"></textarea>
     
     <div id="status"></div>
@@ -27,21 +27,19 @@
     <script>
         let timeoutId = null;
 
-        // 1. 入力を監視してタイピング停止を待つ
         function handleInput() {
             const statusDiv = document.getElementById('status');
             clearTimeout(timeoutId);
 
             statusDiv.innerText = "入力中...";
 
-            // タイピングが止まってから0.4秒後に変換を実行
+            // タイピングが止まってから0.5秒後に変換を実行
             timeoutId = setTimeout(() => {
-                startConversion();
-            }, 400); 
+                convertText();
+            }, 500); 
         }
 
-        // 2. ⚠️ fetchを使わずに、<script>タグを作ってGoogle APIを呼び出す（CORSを100%回避）
-        function startConversion() {
+        async function convertText() {
             const inputText = document.getElementById('inputText').value;
             const resultDiv = document.getElementById('result');
             const statusDiv = document.getElementById('status');
@@ -54,34 +52,23 @@
 
             statusDiv.innerText = "変換中...";
 
-            // 古い中継用スクリプトタグがあれば削除する（ゴミ掃除）
-            const oldScript = document.getElementById('google-api-script');
-            if (oldScript) oldScript.remove();
-
-            // Google APIにリクエストを投げるためのURLを組み立てる
-            // &callback=onGoogleResponse を指定することで、結果が下の関数に自動で届きます
-            const encodedText = encodeURIComponent(inputText);
-            const apiUrl = `https://google.com{encodedText}&callback=onGoogleResponse`;
-
-            // 新しい <script> タグを生成してページに差し込む（これで通信が走る）
-            const script = document.createElement('script');
-            script.id = 'google-api-script';
-            script.src = apiUrl;
-            
-            // 通信エラーが起きた場合の保険
-            script.onerror = () => {
-                statusDiv.innerText = "エラーが発生しました（ネットワーク環境を確認してください）";
-            };
-
-            document.body.appendChild(script);
-        }
-
-        // 3. ⚠️ Googleからデータが届いたら自動的に実行される関数
-        window.onGoogleResponse = function(data) {
-            const resultDiv = document.getElementById('result');
-            const statusDiv = document.getElementById('status');
-
             try {
+                // 1. Google IME APIの正しいエンドポイントとパラメータを設定
+                const encodedText = encodeURIComponent(inputText);
+                const googleApiUrl = `https://google.com|ja&text=${encodedText}`;
+
+                // 2. 修正ポイント: 変数展開の $ を追加
+                const proxyUrl = `https://allorigins.win{encodeURIComponent(googleApiUrl)}`;
+
+                const response = await fetch(proxyUrl);
+                if (!response.ok) throw new Error("通信エラーが発生しました");
+
+                // 3. プロキシから返ってきたデータを解析
+                const proxyData = await response.json();
+                
+                // AllOriginsは元のAPIの返却値を文字列(contents)として包んで返すので、それをJSONとしてパースする
+                const data = JSON.parse(proxyData.contents);
+                
                 let resultText = "";
                 for (const item of data) {
                     if (item && item[1] && item[1][0]) {
@@ -92,10 +79,12 @@
                 resultDiv.innerText = resultText;
                 statusDiv.innerText = "変換完了";
 
-            } catch (e) {
-                statusDiv.innerText = "データの解析に失敗しました";
+            } catch (error) {
+                statusDiv.innerText = "エラーが発生しました";
+                resultDiv.innerText = `エラー詳細: ${error.message}`;
+                console.error(error);
             }
-        };
+        }
     </script>
 
 </body>
