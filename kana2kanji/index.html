@@ -10,6 +10,7 @@
         button { padding: 10px 20px; font-size: 16px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px; }
         button:hover { background-color: #0056b3; }
         #result { margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 5px; min-height: 50px; white-space: pre-wrap; }
+        .error-text { color: #dc3545; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -17,7 +18,7 @@
     <h1>ひらがな→漢字変換</h1>
     
     <p>ひらがなを入力してください：</p>
-    <textarea id="inputText" placeholder="きょうはいい天気ですね"></textarea>
+    <textarea id="inputText" placeholder="きょうはいいてんきですね"></textarea>
     
     <button onclick="convertText()">変換する</button>
 
@@ -30,7 +31,7 @@
             const resultDiv = document.getElementById('result');
 
             if (!inputText) {
-                resultDiv.innerText = "文字を入力してください。";
+                resultDiv.innerHTML = '<span class="error-text">❌ 文字を入力してください。</span>';
                 return;
             }
 
@@ -38,27 +39,53 @@
 
             try {
                 // GoogleのIME変換APIの正しいURL（CORS回避のためにプロキシを経由）
-                const targetUrl = `https://google.com|ja&text=${encodeURIComponent(inputText)}`;
+                const targetUrl = `https://www.google.com/transliterate?langpair=ja-Hira|ja&text=${encodeURIComponent(inputText)}`;
                 const apiUrl = `https://corsproxy.io{encodeURIComponent(targetUrl)}`;
 
+                // 1. ネットワークリクエストのタイムアウト設定（5秒）
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+
                 // APIリクエストを送信
-                const response = await fetch(apiUrl);
-                if (!response.ok) throw new Error("APIの応答が正常ではありませんでした。");
+                const response = await fetch(apiUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                // 2. HTTPステータスコードのチェック（404や500エラーの検知）
+                if (!response.ok) {
+                    throw new Error(`HTTP_ERROR:${response.status}`);
+                }
 
                 const data = await response.json();
                 
                 // 配列から変換結果を組み立てる
                 let resultText = "";
                 for (const item of data) {
+                    // item[1][0] が最も有力な漢字変換候補
                     if (item && item[1] && item[1][0]) {
-                        resultText += item[1][0]; // 最も有力な変換候補を結合
+                        resultText += item[1][0];
                     }
                 }
 
+                // 結果を出力
                 resultDiv.innerText = resultText;
 
             } catch (error) {
-                resultDiv.innerText = `エラーが発生しました: ${error.message}\nインターネット接続を確認するか、しばらく時間を置いて試してください。`;
+                // 3. エラー原因を細かく分析して結果欄に出力
+                let errorMessage = "";
+
+                if (error.name === 'AbortError') {
+                    errorMessage = "⏱️ タイムアウト: サーバーからの応答が遅いため、通信を遮断しました。";
+                } else if (error.message.startsWith('HTTP_ERROR:')) {
+                    const status = error.message.split(':')[1];
+                    errorMessage = `❌ サーバーエラー: 宛先サーバーがエラーを返しました（ステータスコード: ${status}）。`;
+                } else if (error instanceof TypeError) {
+                    errorMessage = "🔌 通信失敗(Load failed): ネットワークに接続されていないか、プロキシサーバー（corsproxy.io）が一時的に落ちている可能性があります。";
+                } else {
+                    errorMessage = `⚠️ 予期せぬエラー: ${error.message}`;
+                }
+
+                // 赤文字で結果欄に書き出す
+                resultDiv.innerHTML = `<span class="error-text">${errorMessage}</span>`;
             }
         }
     </script>
