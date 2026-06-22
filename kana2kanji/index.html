@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>かな漢字変換ツール</title>
+    <title>かな漢字変換ツール (安定ローカル版)</title>
     <style>
         body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
         textarea { width: 100%; height: 100px; margin-bottom: 10px; padding: 10px; box-sizing: border-box; }
@@ -11,24 +11,55 @@
         button:hover { background-color: #0056b3; }
         #result { margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 5px; min-height: 50px; white-space: pre-wrap; }
         .error-text { color: #dc3545; font-weight: bold; }
+        .status-text { color: #6c757d; font-style: italic; }
     </style>
+
+    <!-- 外部のサーバーに依存しないよう、信頼性の高いCDNからJavaScriptの解析ライブラリを読み込みます -->
+    <script src="https://jsdelivr.net"></script>
+    <script src="https://jsdelivr.net"></script>
 </head>
 <body>
 
-    <h1>ひらがな→漢字変換</h1>
+    <h1>ひらがな→漢字・カタカナ変換</h1>
     
-    <p>ひらがなを入力してください：</p>
-    <textarea id="inputText" placeholder="きょうはいいてんきですね"></textarea>
+    <p>ひらがな（または文章）を入力してください：</p>
+    <textarea id="inputText" placeholder="にほんごをにゅうりょくしてへんかんします"></textarea>
     
     <button onclick="convertText()">変換する</button>
 
     <h3>変換結果：</h3>
-    <div id="result">ここに結果が表示されます</div>
+    <div id="result" class="status-text">システム準備中... (初回は辞書の読み込みに数秒かかります)</div>
 
     <script>
-        function convertText() {
+        const kuroshiro = new Kuroshiro();
+        let isInitialized = false;
+
+        // ページを読み込んだら、裏側で辞書データをセットアップ
+        async function initAnalyzer() {
+            const resultDiv = document.getElementById('result');
+            try {
+                // Kuromoji辞書を読み込んで解析機を初期化
+                await kuroshiro.init(new KuromojiAnalyzer({
+                    dictPath: "https://jsdelivr.net"
+                }));
+                isInitialized = true;
+                resultDiv.innerText = "準備完了しました。ひらがなを入力して変換してください。";
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error-text">❌ 辞書データの読み込みに失敗しました: ${error.message}</span>`;
+            }
+        }
+
+        // 初期化の実行
+        initAnalyzer();
+
+        async function convertText() {
             const inputText = document.getElementById('inputText').value;
             const resultDiv = document.getElementById('result');
+
+            if (!isInitialized) {
+                resultDiv.innerHTML = '<span class="error-text">⚠️ まだシステムの準備ができていません。しばらくお待ちください。</span>';
+                return;
+            }
 
             if (!inputText) {
                 resultDiv.innerHTML = '<span class="error-text">❌ 文字を入力してください。</span>';
@@ -37,57 +68,38 @@
 
             resultDiv.innerText = "変換中...";
 
-            // 以前の古いスクリプトタグが残っていたら削除する
-            const oldScript = document.getElementById('google-ime-jsonp');
-            if (oldScript) oldScript.remove();
-
-            // グローバルに関数を定義して、Googleからの結果を受け取れるようにする
-            window.onGoogleImeResult = function(data) {
-                try {
-                    let resultText = "";
-                    for (const item of data) {
-                        // item[1][0] が最も有力な漢字変換候補
-                        if (item && item[1] && item[1][0]) {
-                            resultText += item[1][0];
-                        }
-                    }
-                    resultDiv.innerText = resultText;
-                } catch (e) {
-                    resultDiv.innerHTML = `<span class="error-text">❌ データ解析エラー: ${e.message}</span>`;
-                }
-                // 使い終わった関数をクリア
-                delete window.onGoogleImeResult;
-            };
-
-            // タイムアウト監視用のタイマー（5秒）
-            const timeoutId = setTimeout(() => {
-                if (window.onGoogleImeResult) {
-                    resultDiv.innerHTML = '<span class="error-text">⏱️ タイムアウト: Googleから応答がありません。</span>';
-                    delete window.onGoogleImeResult;
-                }
-            }, 5000);
-
             try {
-                // JSONP用のスクリプトタグを生成
-                const script = document.createElement('script');
-                script.id = 'google-ime-jsonp';
-                
-                // callbackパラメータに上で作った関数名を指定することでCORSを回避
-                script.src = `https://google.com|ja&text=${encodeURIComponent(inputText)}&callback=onGoogleImeResult`;
-                
-                // スクリプトの読み込み自体が失敗した場合のエラーハンドリング
-                script.onerror = function() {
-                    clearTimeout(timeoutId);
-                    resultDiv.innerHTML = '<span class="error-text">🔌 通信失敗: Google APIへのアクセスがブロックされたか、オフラインです。</span>';
-                    delete window.onGoogleImeResult;
-                };
+                // タイムアウトを設けて処理のフリーズを検知する try-catch 構造
+                const conversionPromise = kuroshiro.convert(inputText, {
+                    to: "okurigana", // 標準的な送り仮名付きの「漢字・ひらがな交じり」に変換
+                    mode: "normal"
+                });
 
-                // ページに差し込んで実行
-                document.body.appendChild(script);
+                // 5秒でタイムアウトさせる
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error("TIMEOUT")), 5000)
+                );
+
+                // レスポンスの競合処理
+                const convertedResult = await Promise.race([conversionPromise, timeoutPromise]);
+
+                // Kuroshiroの送りがなモードは内部処理用にHTMLタグを吐くことがあるためクリーンアップ
+                // 例: <ruby>漢字<rp>(</rp><rt>かんじ</rt><rp>)</rp></ruby> のような構造から最適な「漢字まじり文」を抽出
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(convertedResult, 'text/html');
+                
+                // プレーンなテキストとして結果欄へ書き出し
+                resultDiv.innerText = doc.body.textContent || doc.body.innerText;
 
             } catch (error) {
-                clearTimeout(timeoutId);
-                resultDiv.innerHTML = `<span class="error-text">⚠️ 予期せぬエラー: ${error.message}</span>`;
+                // エラーの正確な仕分けと結果欄への書き出し
+                let errorMessage = "";
+                if (error.message === "TIMEOUT") {
+                    errorMessage = "⏱️ 処理タイムアウト: 文章が長すぎるか、スマートフォンの処理が追いつきませんでした。";
+                } else {
+                    errorMessage = `❌ 変換エラー: ${error.message}\n文字の組み合わせを変えて試してください。`;
+                }
+                resultDiv.innerHTML = `<span class="error-text">${errorMessage}</span>`;
             }
         }
     </script>
