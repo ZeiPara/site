@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>かな漢字変換ツール (安定ローカル版)</title>
+    <title>かな漢字変換ツール (軽量高速版)</title>
     <style>
         body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
         textarea { width: 100%; height: 100px; margin-bottom: 10px; padding: 10px; box-sizing: border-box; }
@@ -11,55 +11,24 @@
         button:hover { background-color: #0056b3; }
         #result { margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 5px; min-height: 50px; white-space: pre-wrap; }
         .error-text { color: #dc3545; font-weight: bold; }
-        .status-text { color: #6c757d; font-style: italic; }
     </style>
-
-    <!-- 外部のサーバーに依存しないよう、信頼性の高いCDNからJavaScriptの解析ライブラリを読み込みます -->
-    <script src="https://jsdelivr.net"></script>
-    <script src="https://jsdelivr.net"></script>
 </head>
 <body>
 
-    <h1>ひらがな→漢字・カタカナ変換</h1>
+    <h1>ひらがな→漢字変換</h1>
     
-    <p>ひらがな（または文章）を入力してください：</p>
-    <textarea id="inputText" placeholder="にほんごをにゅうりょくしてへんかんします"></textarea>
+    <p>ひらがなを入力してください：</p>
+    <textarea id="inputText" placeholder="きょうはいいてんきですね"></textarea>
     
     <button onclick="convertText()">変換する</button>
 
     <h3>変換結果：</h3>
-    <div id="result" class="status-text">システム準備中... (初回は辞書の読み込みに数秒かかります)</div>
+    <div id="result">ここに結果が表示されます</div>
 
     <script>
-        const kuroshiro = new Kuroshiro();
-        let isInitialized = false;
-
-        // ページを読み込んだら、裏側で辞書データをセットアップ
-        async function initAnalyzer() {
-            const resultDiv = document.getElementById('result');
-            try {
-                // Kuromoji辞書を読み込んで解析機を初期化
-                await kuroshiro.init(new KuromojiAnalyzer({
-                    dictPath: "https://jsdelivr.net"
-                }));
-                isInitialized = true;
-                resultDiv.innerText = "準備完了しました。ひらがなを入力して変換してください。";
-            } catch (error) {
-                resultDiv.innerHTML = `<span class="error-text">❌ 辞書データの読み込みに失敗しました: ${error.message}</span>`;
-            }
-        }
-
-        // 初期化の実行
-        initAnalyzer();
-
         async function convertText() {
             const inputText = document.getElementById('inputText').value;
             const resultDiv = document.getElementById('result');
-
-            if (!isInitialized) {
-                resultDiv.innerHTML = '<span class="error-text">⚠️ まだシステムの準備ができていません。しばらくお待ちください。</span>';
-                return;
-            }
 
             if (!inputText) {
                 resultDiv.innerHTML = '<span class="error-text">❌ 文字を入力してください。</span>';
@@ -69,36 +38,60 @@
             resultDiv.innerText = "変換中...";
 
             try {
-                // タイムアウトを設けて処理のフリーズを検知する try-catch 構造
-                const conversionPromise = kuroshiro.convert(inputText, {
-                    to: "okurigana", // 標準的な送り仮名付きの「漢字・ひらがな交じり」に変換
-                    mode: "normal"
-                });
-
-                // 5秒でタイムアウトさせる
-                const timeoutPromise = new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error("TIMEOUT")), 5000)
-                );
-
-                // レスポンスの競合処理
-                const convertedResult = await Promise.race([conversionPromise, timeoutPromise]);
-
-                // Kuroshiroの送りがなモードは内部処理用にHTMLタグを吐くことがあるためクリーンアップ
-                // 例: <ruby>漢字<rp>(</rp><rt>かんじ</rt><rp>)</rp></ruby> のような構造から最適な「漢字まじり文」を抽出
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(convertedResult, 'text/html');
+                // 1. Google IMEの正規APIのURLを生成
+                const targetUrl = `https://google.com|ja&text=${encodeURIComponent(inputText)}`;
                 
-                // プレーンなテキストとして結果欄へ書き出し
-                resultDiv.innerText = doc.body.textContent || doc.body.innerText;
+                // 2. 超軽量でCORSを回避できる「allorigins」プロキシを経由させる
+                const apiUrl = `https://allorigins.win{encodeURIComponent(targetUrl)}`;
+
+                // タイムアウト設定（5秒）
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+                // APIリクエストの送信
+                const response = await fetch(apiUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                // HTTP自体の通信エラーチェック
+                if (!response.ok) {
+                    throw new Error(`HTTP_STATUS_${response.status}`);
+                }
+
+                const wrapperData = await response.json();
+                
+                // alloriginsは「wrapperData.contents」の中に生の文字列が入ってくるためパースする
+                if (!wrapperData.contents) {
+                    throw new Error("EMPTY_RESPONSE");
+                }
+                const data = JSON.parse(wrapperData.contents);
+                
+                // 配列から一番有力な変換後の漢字候補を取り出して組み立てる
+                let resultText = "";
+                for (const item of data) {
+                    if (item && item[1] && item[1][0]) {
+                        resultText += item[1][0];
+                    }
+                }
+
+                // 正確に結果を出力
+                resultDiv.innerText = resultText;
 
             } catch (error) {
-                // エラーの正確な仕分けと結果欄への書き出し
+                // エラーの正確な仕分けと結果欄への出力
                 let errorMessage = "";
-                if (error.message === "TIMEOUT") {
-                    errorMessage = "⏱️ 処理タイムアウト: 文章が長すぎるか、スマートフォンの処理が追いつきませんでした。";
+
+                if (error.name === 'AbortError') {
+                    errorMessage = "⏱️ タイムアウト: 変換処理に時間がかかりすぎたため中断しました。";
+                } else if (error.message.startsWith('HTTP_STATUS_')) {
+                    const code = error.message.replace('HTTP_STATUS_', '');
+                    errorMessage = `❌ サーバーエラー: プロキシサーバーが異常を検知しました (コード: ${code})`;
+                } else if (error instanceof SyntaxError) {
+                    errorMessage = "⚠️ データ解析エラー: Googleから返ってきたデータの形が不正です。";
                 } else {
-                    errorMessage = `❌ 変換エラー: ${error.message}\n文字の組み合わせを変えて試してください。`;
+                    errorMessage = `🔌 通信失敗(Load failed): ネットワーク未接続か、アクセスが遮断されました。(${error.message})`;
                 }
+
+                // 赤文字で正確に書き出し
                 resultDiv.innerHTML = `<span class="error-text">${errorMessage}</span>`;
             }
         }
