@@ -17,7 +17,7 @@
     <h1>ひらがな→漢字変換</h1>
     
     <p>ひらがなを入力してください：</p>
-    <textarea id="inputText" placeholder="（例：をつかってひらがなをかんじにへんかんするさいとをつくりたい）"></textarea>
+    <textarea id="inputText" placeholder="きょうはいい天気ですね"></textarea>
     
     <button onclick="convertText()">変換する</button>
 
@@ -37,32 +37,28 @@
             resultDiv.innerText = "変換中...";
 
             try {
-                // 1. ひらがな部分をURLエンコード
-                const encodedText = encodeURIComponent(inputText);
-                
-                // 2. ⚠️ 修正ポイント: 「ja-Hira|ja」の「|」を安全な「%7C」に手動で書き換え、URL全体の整合性を保ちます
-                const langpair = encodeURIComponent("ja-Hira|ja"); 
-                const apiUrl = `https://google.com{langpair}&text=${encodedText}`;
+                // GoogleのIME変換APIの正しいURL（CORS回避のためにプロキシを経由）
+                const targetUrl = `https://google.com|ja&text=${encodeURIComponent(inputText)}`;
+                const apiUrl = `https://corsproxy.io{encodeURIComponent(targetUrl)}`;
 
-                // 3. APIリクエストを送信
+                // APIリクエストを送信
                 const response = await fetch(apiUrl);
                 if (!response.ok) throw new Error("APIの応答が正常ではありませんでした。");
 
                 const data = await response.json();
                 
-                // 4. Google APIから返ってきた配列を、1つの文章に組み立てる
+                // 配列から変換結果を組み立てる
                 let resultText = "";
                 for (const item of data) {
-                    // item[0] は元のひらがな、item[1][0] は最も有力な漢字変換候補
                     if (item && item[1] && item[1][0]) {
-                        resultText += item[1][0];
+                        resultText += item[1][0]; // 最も有力な変換候補を結合
                     }
                 }
 
                 resultDiv.innerText = resultText;
 
             } catch (error) {
-                resultDiv.innerText = `エラーが発生しました: ${error.message}\nローカルファイルをブラウザで直接開いている場合、一部の環境で制限がかかることがあります。`;
+                resultDiv.innerText = `エラーが発生しました: ${error.message}\nインターネット接続を確認するか、しばらく時間を置いて試してください。`;
             }
         }
     </script>
