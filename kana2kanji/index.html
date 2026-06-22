@@ -3,86 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>リアルタイムかな漢字変換</title>
+    <title>かな漢字変換ツール</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; background-color: #f7f9fa; color: #333; }
-        h1 { font-size: 24px; color: #007bff; text-align: center; }
-        textarea { width: 100%; height: 120px; margin-bottom: 10px; padding: 12px; box-sizing: border-box; font-size: 16px; border: 2px solid #ccc; border-radius: 8px; resize: vertical; }
-        textarea:focus { border-color: #007bff; outline: none; }
-        #status { font-size: 14px; color: #666; margin-bottom: 5px; min-height: 20px; }
-        #result { padding: 15px; background: white; border: 2px solid #e2e8f0; border-radius: 8px; min-height: 60px; white-space: pre-wrap; font-size: 18px; line-height: 1.6; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
+        textarea { width: 100%; height: 100px; margin-bottom: 10px; padding: 10px; box-sizing: border-box; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background-color: #0056b3; }
+        #result { margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 5px; min-height: 50px; white-space: pre-wrap; }
     </style>
 </head>
 <body>
 
-    <h1>リアルタイムかな漢字変換</h1>
+    <h1>ひらがな→漢字変換</h1>
     
-    <p>ひらがなを入力してください（タイピングが止まると自動変換します）：</p>
-    <textarea id="inputText" oninput="handleInput()" placeholder="例：をつかってひらがなをかんじにへんかんするさいとをつくりたい"></textarea>
+    <p>ひらがなを入力してください：</p>
+    <textarea id="inputText" placeholder="（例：をつかってひらがなをかんじにへんかんするさいとをつくりたい）"></textarea>
     
-    <div id="status"></div>
+    <button onclick="convertText()">変換する</button>
+
     <h3>変換結果：</h3>
     <div id="result">ここに結果が表示されます</div>
 
     <script>
-        let timeoutId = null;
-
-        function handleInput() {
-            const statusDiv = document.getElementById('status');
-            clearTimeout(timeoutId);
-
-            statusDiv.innerText = "入力中...";
-
-            // タイピングが止まってから0.5秒後に変換を実行
-            timeoutId = setTimeout(() => {
-                convertText();
-            }, 500); 
-        }
-
         async function convertText() {
             const inputText = document.getElementById('inputText').value;
             const resultDiv = document.getElementById('result');
-            const statusDiv = document.getElementById('status');
 
-            if (!inputText.trim()) {
-                resultDiv.innerText = "ここに結果が表示されます";
-                statusDiv.innerText = "";
+            if (!inputText) {
+                resultDiv.innerText = "文字を入力してください。";
                 return;
             }
 
-            statusDiv.innerText = "変換中...";
+            resultDiv.innerText = "変換中...";
 
             try {
-                // 1. Google IME APIの正しいエンドポイントとパラメータを設定
+                // 1. ひらがな部分をURLエンコード
                 const encodedText = encodeURIComponent(inputText);
-                const googleApiUrl = `https://google.com|ja&text=${encodedText}`;
-
-                // 2. 修正ポイント: 変数展開の $ を追加
-                const proxyUrl = `https://allorigins.win{encodeURIComponent(googleApiUrl)}`;
-
-                const response = await fetch(proxyUrl);
-                if (!response.ok) throw new Error("通信エラーが発生しました");
-
-                // 3. プロキシから返ってきたデータを解析
-                const proxyData = await response.json();
                 
-                // AllOriginsは元のAPIの返却値を文字列(contents)として包んで返すので、それをJSONとしてパースする
-                const data = JSON.parse(proxyData.contents);
+                // 2. ⚠️ 修正ポイント: 「ja-Hira|ja」の「|」を安全な「%7C」に手動で書き換え、URL全体の整合性を保ちます
+                const langpair = encodeURIComponent("ja-Hira|ja"); 
+                const apiUrl = `https://google.com{langpair}&text=${encodedText}`;
+
+                // 3. APIリクエストを送信
+                const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error("APIの応答が正常ではありませんでした。");
+
+                const data = await response.json();
                 
+                // 4. Google APIから返ってきた配列を、1つの文章に組み立てる
                 let resultText = "";
                 for (const item of data) {
+                    // item[0] は元のひらがな、item[1][0] は最も有力な漢字変換候補
                     if (item && item[1] && item[1][0]) {
-                        resultText += item[1][0]; // 最も有力な漢字候補を結合
+                        resultText += item[1][0];
                     }
                 }
 
                 resultDiv.innerText = resultText;
-                statusDiv.innerText = "変換完了";
 
             } catch (error) {
-                statusDiv.innerText = "エラーが発生しました";
-                resultDiv.innerText = `エラー詳細: ${error.message}`;
-                console.error(error);
+                resultDiv.innerText = `エラーが発生しました: ${error.message}\nローカルファイルをブラウザで直接開いている場合、一部の環境で制限がかかることがあります。`;
             }
         }
     </script>
