@@ -26,7 +26,7 @@
     <div id="result">ここに結果が表示されます</div>
 
     <script>
-        async function convertText() {
+        function convertText() {
             const inputText = document.getElementById('inputText').value;
             const resultDiv = document.getElementById('result');
 
@@ -37,55 +37,57 @@
 
             resultDiv.innerText = "変換中...";
 
-            try {
-                // GoogleのIME変換APIの正しいURL（CORS回避のためにプロキシを経由）
-                const targetUrl = `https://www.google.com/transliterate?langpair=ja-Hira|ja&text=${encodeURIComponent(inputText)}`;
-                const apiUrl = `https://corsproxy.io{encodeURIComponent(targetUrl)}`;
+            // 以前の古いスクリプトタグが残っていたら削除する
+            const oldScript = document.getElementById('google-ime-jsonp');
+            if (oldScript) oldScript.remove();
 
-                // 1. ネットワークリクエストのタイムアウト設定（5秒）
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-                // APIリクエストを送信
-                const response = await fetch(apiUrl, { signal: controller.signal });
-                clearTimeout(timeoutId);
-
-                // 2. HTTPステータスコードのチェック（404や500エラーの検知）
-                if (!response.ok) {
-                    throw new Error(`HTTP_ERROR:${response.status}`);
-                }
-
-                const data = await response.json();
-                
-                // 配列から変換結果を組み立てる
-                let resultText = "";
-                for (const item of data) {
-                    // item[1][0] が最も有力な漢字変換候補
-                    if (item && item[1] && item[1][0]) {
-                        resultText += item[1][0];
+            // グローバルに関数を定義して、Googleからの結果を受け取れるようにする
+            window.onGoogleImeResult = function(data) {
+                try {
+                    let resultText = "";
+                    for (const item of data) {
+                        // item[1][0] が最も有力な漢字変換候補
+                        if (item && item[1] && item[1][0]) {
+                            resultText += item[1][0];
+                        }
                     }
+                    resultDiv.innerText = resultText;
+                } catch (e) {
+                    resultDiv.innerHTML = `<span class="error-text">❌ データ解析エラー: ${e.message}</span>`;
                 }
+                // 使い終わった関数をクリア
+                delete window.onGoogleImeResult;
+            };
 
-                // 結果を出力
-                resultDiv.innerText = resultText;
+            // タイムアウト監視用のタイマー（5秒）
+            const timeoutId = setTimeout(() => {
+                if (window.onGoogleImeResult) {
+                    resultDiv.innerHTML = '<span class="error-text">⏱️ タイムアウト: Googleから応答がありません。</span>';
+                    delete window.onGoogleImeResult;
+                }
+            }, 5000);
+
+            try {
+                // JSONP用のスクリプトタグを生成
+                const script = document.createElement('script');
+                script.id = 'google-ime-jsonp';
+                
+                // callbackパラメータに上で作った関数名を指定することでCORSを回避
+                script.src = `https://google.com|ja&text=${encodeURIComponent(inputText)}&callback=onGoogleImeResult`;
+                
+                // スクリプトの読み込み自体が失敗した場合のエラーハンドリング
+                script.onerror = function() {
+                    clearTimeout(timeoutId);
+                    resultDiv.innerHTML = '<span class="error-text">🔌 通信失敗: Google APIへのアクセスがブロックされたか、オフラインです。</span>';
+                    delete window.onGoogleImeResult;
+                };
+
+                // ページに差し込んで実行
+                document.body.appendChild(script);
 
             } catch (error) {
-                // 3. エラー原因を細かく分析して結果欄に出力
-                let errorMessage = "";
-
-                if (error.name === 'AbortError') {
-                    errorMessage = "⏱️ タイムアウト: サーバーからの応答が遅いため、通信を遮断しました。";
-                } else if (error.message.startsWith('HTTP_ERROR:')) {
-                    const status = error.message.split(':')[1];
-                    errorMessage = `❌ サーバーエラー: 宛先サーバーがエラーを返しました（ステータスコード: ${status}）。`;
-                } else if (error instanceof TypeError) {
-                    errorMessage = "🔌 通信失敗(Load failed): ネットワークに接続されていないか、プロキシサーバー（corsproxy.io）が一時的に落ちている可能性があります。";
-                } else {
-                    errorMessage = `⚠️ 予期せぬエラー: ${error.message}`;
-                }
-
-                // 赤文字で結果欄に書き出す
-                resultDiv.innerHTML = `<span class="error-text">${errorMessage}</span>`;
+                clearTimeout(timeoutId);
+                resultDiv.innerHTML = `<span class="error-text">⚠️ 予期せぬエラー: ${error.message}</span>`;
             }
         }
     </script>
