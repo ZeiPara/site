@@ -41,8 +41,8 @@
                 // 1. Google IMEの正規APIのURLを生成
                 const targetUrl = `https://www.google.com/transliterate?langpair=ja-Hira|ja&text=${encodeURIComponent(inputText)}`;
                 
-                // 2. 超軽量でCORSを回避できる「allorigins」プロキシを経由させる
-                const apiUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+                // 2. 超軽量でCORSを回避できる
+                const apiUrl = `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
 
                 // タイムアウト設定（5秒）
                 const controller = new AbortController();
