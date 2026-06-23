@@ -57,13 +57,12 @@
                     throw new Error(`HTTP_STATUS_${response.status}`);
                 }
 
-                const wrapperData = await response.json();
-                
-                // alloriginsは「wrapperData.contents」の中に生の文字列が入ってくるためパースする
-                if (!wrapperData.contents) {
+                // corsproxy.ioは生のJSONをそのまま返すので、ダイレクトにパースしてOK
+                const data = await response.json();
+
+                if (!data || data.length === 0) {
                     throw new Error("EMPTY_RESPONSE");
                 }
-                const data = JSON.parse(wrapperData.contents);
                 
                 // 配列から一番有力な変換後の漢字候補を取り出して組み立てる
                 let resultText = "";
