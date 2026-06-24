@@ -9,8 +9,11 @@
         textarea { width: 100%; height: 100px; margin-bottom: 10px; padding: 10px; box-sizing: border-box; }
         button { padding: 10px 20px; font-size: 16px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px; }
         button:hover { background-color: #0056b3; }
-        #result { margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 5px; min-height: 50px; white-space: pre-wrap; }
+        button:disabled { background-color: #cccccc; cursor: not-allowed; }
+        #result { margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 5px; min-height: 50px; white-space: pre-wrap; position: relative; }
         .error-text { color: #dc3545; font-weight: bold; }
+        /* コピー通知のスタイル */
+        .copy-toast { display: inline-block; margin-left: 10px; color: #28a745; font-size: 14px; font-weight: bold; fade-in: 0.3s; }
     </style>
 </head>
 <body>
@@ -20,28 +23,38 @@
     <p>ひらがなを入力してください：</p>
     <textarea id="inputText" placeholder="きょうはいいてんきですね"></textarea>
     
-    <button onclick="convertText()">変換する</button>
+    <button id="convertBtn" onclick="convertText()">変換する</button>
+    <!-- コピー完了の通知を表示するスペース -->
+    <span id="copyMessage" class="copy-toast"></span>
 
     <h3>変換結果：</h3>
     <div id="result">ここに結果が表示されます</div>
 
     <script>
         async function convertText() {
-            const inputText = document.getElementById('inputText').value;
+            const inputTextArea = document.getElementById('inputText');
+            const convertBtn = document.getElementById('convertBtn');
             const resultDiv = document.getElementById('result');
+            const copyMessage = document.getElementById('copyMessage');
+            
+            const inputText = inputTextArea.value.trim();
 
             if (!inputText) {
                 resultDiv.innerHTML = '<span class="error-text">❌ 文字を入力してください。</span>';
+                copyMessage.textContent = ""; // メッセージをクリア
                 return;
             }
 
-            resultDiv.innerText = "変換中...";
+            // UIの状態をリセット＆「通信中」にする
+            convertBtn.disabled = true;
+            resultDiv.textContent = "変換中...";
+            copyMessage.textContent = ""; 
 
             try {
                 // 1. Google IMEの正規APIのURLを生成
                 const targetUrl = `https://www.google.com/transliterate?langpair=ja-Hira|ja&text=${encodeURIComponent(inputText)}`;
                 
-                // 2. 超軽量でCORSを回避できる
+                // 2. CORS回避プロキシ
                 const apiUrl = `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
 
                 // タイムアウト設定（5秒）
@@ -52,12 +65,10 @@
                 const response = await fetch(apiUrl, { signal: controller.signal });
                 clearTimeout(timeoutId);
 
-                // HTTP自体の通信エラーチェック
                 if (!response.ok) {
                     throw new Error(`HTTP_STATUS_${response.status}`);
                 }
 
-                // corsproxy.ioは生のJSONをそのまま返すので、ダイレクトにパースしてOK
                 const data = await response.json();
 
                 if (!data || data.length === 0) {
@@ -72,26 +83,39 @@
                     }
                 }
 
-                // 正確に結果を出力
-                resultDiv.innerText = resultText;
+                // 結果を画面に出力
+                resultDiv.textContent = resultText;
+
+                // 💡 【追加機能】クリップボードへの自動コピー処理
+                if (resultText) {
+                    await navigator.clipboard.writeText(resultText);
+                    copyMessage.textContent = "📋 クリップボードにコピーしました！";
+                    
+                    // 3秒後にコピー完了メッセージをじわっと消す（任意）
+                    setTimeout(() => {
+                        copyMessage.textContent = "";
+                    }, 3000);
+                }
 
             } catch (error) {
-                // エラーの正確な仕分けと結果欄への出力
                 let errorMessage = "";
 
                 if (error.name === 'AbortError') {
                     errorMessage = "⏱️ タイムアウト: 変換処理に時間がかかりすぎたため中断しました。";
-                } else if (error.message.startsWith('HTTP_STATUS_')) {
+                } else if (error.message && error.message.startsWith('HTTP_STATUS_')) {
                     const code = error.message.replace('HTTP_STATUS_', '');
                     errorMessage = `❌ サーバーエラー: プロキシサーバーが異常を検知しました (コード: ${code})`;
                 } else if (error instanceof SyntaxError) {
                     errorMessage = "⚠️ データ解析エラー: Googleから返ってきたデータの形が不正です。";
                 } else {
-                    errorMessage = `🔌 通信失敗(Load failed): ネットワーク未接続か、アクセスが遮断されました。(${error.message})`;
+                    errorMessage = `🔌 通信失敗: ネットワーク未接続か、アクセスが遮断されました。(${error.message})`;
                 }
 
-                // 赤文字で正確に書き出し
-                resultDiv.innerHTML = `<span class="error-text">${errorMessage}</span>`;
+                resultDiv.innerHTML = `<span class="error-text"></span>`;
+                resultDiv.querySelector('.error-text').textContent = errorMessage;
+            } finally {
+                // ボタンを有効化
+                convertBtn.disabled = false;
             }
         }
     </script>
