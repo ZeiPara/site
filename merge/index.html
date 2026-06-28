@@ -4,7 +4,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>画像アップロード・座標指定結合（自動サイズ・透過版）</title>
+    <title>画像アップロード・座標指定結合（ぴったり自動切り取り・透過版）</title>
     <style>
         body { font-family: sans-serif; padding: 20px; }
         .controls { margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px; }
@@ -21,6 +21,7 @@
     <h2>画像アップロード・座標指定結合</h2>
 
     <div class="controls">
+        <!-- 画像1の設定 -->
         <div class="control-group">
             <label>画像1 (背景側):</label>
             <input type="file" id="file1" accept="image/*">
@@ -28,6 +29,7 @@
             Y: <input type="number" id="y1" value="0">
         </div>
 
+        <!-- 画像2の設定 -->
         <div class="control-group">
             <label>画像2 (手前側):</label>
             <input type="file" id="file2" accept="image/*">
@@ -35,10 +37,12 @@
             Y: <input type="number" id="y2" value="100">
         </div>
 
+        <!-- アクションボタン -->
         <button id="preview-btn">プレビュー更新</button>
         <button id="download-btn" style="background-color: #4CAF50; color: white; border: none;">PNGでダウンロード</button>
     </div>
 
+    <!-- 初期サイズは仮置きです -->
     <canvas id="canvas" width="800" height="600"></canvas>
 
     <script>
@@ -54,6 +58,8 @@
 
         // キャンバスをクリアする関数（透過）
         function clearCanvas() {
+            canvas.width = 800;
+            canvas.height = 600;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = '#888888';
             ctx.font = '16px sans-serif';
@@ -66,7 +72,7 @@
             if (!file) return;
             img1 = new Image();
             img1.src = URL.createObjectURL(file);
-            img1.onload = () => { updatePreview(); }; // 読み込み完了時に自動プレビュー
+            img1.onload = () => { updatePreview(); };
         });
 
         // ファイルが選択されたら画像を読み込む処理 (画像2)
@@ -75,45 +81,57 @@
             if (!file) return;
             img2 = new Image();
             img2.src = URL.createObjectURL(file);
-            img2.onload = () => { updatePreview(); }; // 読み込み完了時に自動プレビュー
+            img2.onload = () => { updatePreview(); };
         });
 
-        // プレビュー更新のメイン処理
+        // プレビュー更新・およびサイズ自動切り取りのメイン処理
         function updatePreview() {
+            if (!img1 && !img2) {
+                clearCanvas();
+                return;
+            }
+
             // 入力された座標を取得
             const x1 = parseInt(document.getElementById('x1').value) || 0;
             const y1 = parseInt(document.getElementById('y1').value) || 0;
             const x2 = parseInt(document.getElementById('x2').value) || 0;
             const y2 = parseInt(document.getElementById('y2').value) || 0;
 
-            // 画像の配置から必要なキャンバスサイズ（右下端の最大座標）を計算
-            let maxWidth = 800;  // 最低限の幅
-            let maxHeight = 600; // 最低限の高さ
+            // --- 画像に合わせてぴったりサイズを計算（切り取り処理） ---
+            let minX = Infinity;
+            let minY = Infinity;
+            let maxX = -Infinity;
+            let maxY = -Infinity;
 
             if (img1) {
-                maxWidth = Math.max(maxWidth, x1 + img1.width);
-                maxHeight = Math.max(maxHeight, y1 + img1.height);
+                minX = Math.min(minX, x1);
+                minY = Math.min(minY, y1);
+                maxX = Math.max(maxX, x1 + img1.width);
+                maxY = Math.max(maxY, y1 + img1.height);
             }
             if (img2) {
-                maxWidth = Math.max(maxWidth, x2 + img2.width);
-                maxHeight = Math.max(maxHeight, y2 + img2.height);
+                minX = Math.min(minX, x2);
+                minY = Math.min(minY, y2);
+                maxX = Math.max(maxX, x2 + img2.width);
+                maxY = Math.max(maxY, y2 + img2.height);
             }
 
-            // キャンバスのサイズを自動調整
-            canvas.width = maxWidth;
-            canvas.height = maxHeight;
+            // 画像の端に合わせて、キャンバスの幅と高さを「ぴったりサイズ」に変更
+            const computedWidth = maxX - minX;
+            const computedHeight = maxY - minY;
 
-            // 透過でクリア
+            canvas.width = computedWidth;
+            canvas.height = computedHeight;
+
+            // 透過クリア
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // 画像1が読み込まれていれば描画
+            // 配置の基準点をずらすことで、マイナス座標に置かれた画像もはみ出さずに切り取れます
             if (img1) {
-                ctx.drawImage(img1, x1, y1);
+                ctx.drawImage(img1, x1 - minX, y1 - minY);
             }
-
-            // 画像2が読み込まれていれば描画
             if (img2) {
-                ctx.drawImage(img2, x2, y2);
+                ctx.drawImage(img2, x2 - minX, y2 - minY);
             }
         }
 
@@ -122,35 +140,38 @@
 
         // ダウンロードボタンの処理
         document.getElementById('download-btn').addEventListener('click', () => {
+            if (!img1 && !img2) {
+                alert('画像がアップロードされていません。');
+                return;
+            }
+
             // 現在のキャンバスからPNGのDataURLを生成
             const dataUrl = canvas.toDataURL('image/png');
 
             // ダウンロード処理を実行
             const link = document.createElement('a');
             link.href = dataUrl;
-            link.download = 'combined-upload.png';
+            link.download = 'combined-cropped.png';
             link.click();
 
             // --- ダウンロード後のクリア ＆ 画像1への自動貼り付け処理 ---
-            
-            // 1. 新しい画像オブジェクトとしてダウンロードした画像を設定
             const newImg1 = new Image();
             newImg1.src = dataUrl;
             newImg1.onload = () => {
-                img1 = newImg1; // 画像1を差し替え
+                img1 = newImg1; // 新しいぴったりサイズの画像を画像1にセット
                 
-                // 画像1のフォーム上の設定をリセット (座標を0,0に、ファイル選択を空に)
+                // 画像1のフォームをリセット (座標を0,0に)
                 document.getElementById('file1').value = ''; 
                 document.getElementById('x1').value = 0;
                 document.getElementById('y1').value = 0;
 
-                // 2. 画像2（手前側）のデータをクリア
+                // 画像2（手前側）のデータをクリア
                 img2 = null;
                 document.getElementById('file2').value = '';
-                document.getElementById('x2').value = 100; // 初期位置に戻す
+                document.getElementById('x2').value = 100; // 次の重ね合わせ用の初期値
                 document.getElementById('y2').value = 100;
 
-                // 3. 画面を再描画
+                // 画面を再描画
                 updatePreview();
             };
         });
