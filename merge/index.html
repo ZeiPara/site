@@ -4,7 +4,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>画像アップロード・座標指定結合</title>
+    <title>画像アップロード・座標指定結合（自動サイズ・透過版）</title>
     <style>
         body { font-family: sans-serif; padding: 20px; }
         .controls { margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px; }
@@ -12,7 +12,8 @@
         label { display: inline-block; width: 120px; font-weight: bold; }
         input[type="number"] { width: 80px; padding: 3px; margin-right: 15px; }
         button { padding: 8px 15px; font-size: 14px; cursor: pointer; }
-        canvas { border: 2px dashed #ccc; background-color: #fff; margin-top: 10px; }
+        /* 背景が透過しているのが分かりやすいように市松模様風の枠線にしています */
+        canvas { border: 2px dashed #ccc; background-image: linear-gradient(45deg, #eee 25%, transparent 25%, transparent 75%, #eee 75%), linear-gradient(45deg, #eee 25%, white 25%, white 75%, #eee 75%); background-size: 20px 20px; background-position: 0 0, 10px 10px; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -20,7 +21,6 @@
     <h2>画像アップロード・座標指定結合</h2>
 
     <div class="controls">
-        <!-- 画像1の設定 -->
         <div class="control-group">
             <label>画像1 (背景側):</label>
             <input type="file" id="file1" accept="image/*">
@@ -28,7 +28,6 @@
             Y: <input type="number" id="y1" value="0">
         </div>
 
-        <!-- 画像2の設定 -->
         <div class="control-group">
             <label>画像2 (手前側):</label>
             <input type="file" id="file2" accept="image/*">
@@ -36,12 +35,10 @@
             Y: <input type="number" id="y2" value="100">
         </div>
 
-        <!-- アクションボタン -->
         <button id="preview-btn">プレビュー更新</button>
         <button id="download-btn" style="background-color: #4CAF50; color: white; border: none;">PNGでダウンロード</button>
     </div>
 
-    <!-- 結合結果を表示するキャンバス (幅800px、高さ600px) -->
     <canvas id="canvas" width="800" height="600"></canvas>
 
     <script>
@@ -55,13 +52,12 @@
         // 初期状態のキャンバスを描画
         clearCanvas();
 
-        // キャンバスを白で初期化する関数
+        // キャンバスをクリアする関数（透過）
         function clearCanvas() {
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = '#888888';
             ctx.font = '16px sans-serif';
-            ctx.fillText('画像をアップロードして「プレビュー更新」を押してください', 20, 40);
+            ctx.fillText('画像をアップロードして「プレビュー更新」を押してください（背景は透過されます）', 20, 40);
         }
 
         // ファイルが選択されたら画像を読み込む処理 (画像1)
@@ -70,6 +66,7 @@
             if (!file) return;
             img1 = new Image();
             img1.src = URL.createObjectURL(file);
+            img1.onload = () => { updatePreview(); }; // 読み込み完了時に自動プレビュー
         });
 
         // ファイルが選択されたら画像を読み込む処理 (画像2)
@@ -78,40 +75,86 @@
             if (!file) return;
             img2 = new Image();
             img2.src = URL.createObjectURL(file);
+            img2.onload = () => { updatePreview(); }; // 読み込み完了時に自動プレビュー
         });
 
-        // プレビュー更新ボタンの処理
-        document.getElementById('preview-btn').addEventListener('click', () => {
-            // キャンバスを一度真っ白にする
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+        // プレビュー更新のメイン処理
+        function updatePreview() {
             // 入力された座標を取得
             const x1 = parseInt(document.getElementById('x1').value) || 0;
             const y1 = parseInt(document.getElementById('y1').value) || 0;
             const x2 = parseInt(document.getElementById('x2').value) || 0;
             const y2 = parseInt(document.getElementById('y2').value) || 0;
 
+            // 画像の配置から必要なキャンバスサイズ（右下端の最大座標）を計算
+            let maxWidth = 800;  // 最低限の幅
+            let maxHeight = 600; // 最低限の高さ
+
+            if (img1) {
+                maxWidth = Math.max(maxWidth, x1 + img1.width);
+                maxHeight = Math.max(maxHeight, y1 + img1.height);
+            }
+            if (img2) {
+                maxWidth = Math.max(maxWidth, x2 + img2.width);
+                maxHeight = Math.max(maxHeight, y2 + img2.height);
+            }
+
+            // キャンバスのサイズを自動調整
+            canvas.width = maxWidth;
+            canvas.height = maxHeight;
+
+            // 透過でクリア
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
             // 画像1が読み込まれていれば描画
             if (img1) {
                 ctx.drawImage(img1, x1, y1);
             }
 
-            // 画像2が読み込まれていれば描画（後に描画した方が上に重なる）
+            // 画像2が読み込まれていれば描画
             if (img2) {
                 ctx.drawImage(img2, x2, y2);
             }
-        });
+        }
+
+        // プレビュー更新ボタンの処理
+        document.getElementById('preview-btn').addEventListener('click', updatePreview);
 
         // ダウンロードボタンの処理
         document.getElementById('download-btn').addEventListener('click', () => {
+            // 現在のキャンバスからPNGのDataURLを生成
+            const dataUrl = canvas.toDataURL('image/png');
+
+            // ダウンロード処理を実行
             const link = document.createElement('a');
-            link.href = canvas.toDataURL('image/png');
+            link.href = dataUrl;
             link.download = 'combined-upload.png';
             link.click();
+
+            // --- ダウンロード後のクリア ＆ 画像1への自動貼り付け処理 ---
+            
+            // 1. 新しい画像オブジェクトとしてダウンロードした画像を設定
+            const newImg1 = new Image();
+            newImg1.src = dataUrl;
+            newImg1.onload = () => {
+                img1 = newImg1; // 画像1を差し替え
+                
+                // 画像1のフォーム上の設定をリセット (座標を0,0に、ファイル選択を空に)
+                document.getElementById('file1').value = ''; 
+                document.getElementById('x1').value = 0;
+                document.getElementById('y1').value = 0;
+
+                // 2. 画像2（手前側）のデータをクリア
+                img2 = null;
+                document.getElementById('file2').value = '';
+                document.getElementById('x2').value = 100; // 初期位置に戻す
+                document.getElementById('y2').value = 100;
+
+                // 3. 画面を再描画
+                updatePreview();
+            };
         });
     </script>
 
 </body>
 </html>
-
