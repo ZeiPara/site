@@ -23,7 +23,8 @@
     <h1>ひらがな→漢字変換</h1>
     
     <p>ひらがなを入力してください：</p>
-    <textarea id="inputText" placeholder="きょうはいいてんきですね"></textarea>
+    <!-- 💡 onclick="this.select();" を追加しました -->
+    <textarea id="inputText" placeholder="きょうはいいてんきですね" onclick="this.select();"></textarea>
     
     <div class="btn-group">
         <button id="convertBtn" onclick="convertText()">変換する</button>
