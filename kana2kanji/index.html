@@ -24,7 +24,7 @@
     
     <p>ひらがなを入力してください：</p>
     <!-- 💡 onclick="this.select();" を追加しました -->
-    <textarea id="inputText" placeholder="きょうはいいてんきですね" onclick="this.select();"></textarea>
+    <textarea id="inputText" placeholder="きょうはいいてんきですね。あしたもいいてんきだといいな！" onclick="this.select();"></textarea>
     
     <div class="btn-group">
         <button id="convertBtn" onclick="convertText()">変換する</button>
@@ -38,6 +38,20 @@
     <script>
         // グローバルに結果を保持
         let currentResultText = "";
+
+        // 句点で分割する関数
+        function splitBySentence(text) {
+            // 、。！？で句切る（句点も含める）
+            const regex = /([^、。！？]*[、。！？]?)/g;
+            const parts = [];
+            let match;
+            while ((match = regex.exec(text)) !== null) {
+                if (match[1].trim()) {
+                    parts.push(match[1]);
+                }
+            }
+            return parts.length > 0 ? parts : [text];
+        }
 
         async function convertText() {
             const inputTextArea = document.getElementById('inputText');
@@ -61,29 +75,39 @@
             copyMessage.textContent = ""; 
 
             try {
-                const targetUrl = `https://www.google.com/transliterate?langpair=ja-Hira|ja&text=${encodeURIComponent(inputText)}`;
-                const apiUrl = `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
-
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-                const response = await fetch(apiUrl, { signal: controller.signal });
-                clearTimeout(timeoutId);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP_STATUS_${response.status}`);
-                }
-
-                const data = await response.json();
-                if (!data || data.length === 0) {
-                    throw new Error("EMPTY_RESPONSE");
-                }
-                
+                // 句点で分割
+                const sentences = splitBySentence(inputText);
                 let resultText = "";
-                for (const item of data) {
-                    if (item && item[1] && item[1][0]) {
-                        resultText += item[1][0];
+
+                for (const sentence of sentences) {
+                    if (!sentence.trim()) continue;
+
+                    const targetUrl = `https://www.google.com/transliterate?langpair=ja-Hira|ja&text=${encodeURIComponent(sentence)}`;
+                    const apiUrl = `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
+
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+                    const response = await fetch(apiUrl, { signal: controller.signal });
+                    clearTimeout(timeoutId);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP_STATUS_${response.status}`);
                     }
+
+                    const data = await response.json();
+                    if (!data || data.length === 0) {
+                        throw new Error("EMPTY_RESPONSE");
+                    }
+                    
+                    let convertedSentence = "";
+                    for (const item of data) {
+                        if (item && item[1] && item[1][0]) {
+                            convertedSentence += item[1][0];
+                        }
+                    }
+
+                    resultText += convertedSentence;
                 }
 
                 resultDiv.textContent = resultText;
