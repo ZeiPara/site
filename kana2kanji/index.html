@@ -41,12 +41,17 @@
 
         // 句点で分割する関数
         function splitBySentence(text) {
-            // 、。！？で句切る（句点も含める）
-            const regex = /([^、。！？]*[、。！？]?)/g;
+            // 、。！？で句切る（句点も含める） — 1文字以上に変更して空マッチを防ぐ
+            const regex = /([^、。！？]+[、。！？]?)/g;
             const parts = [];
             let match;
             while ((match = regex.exec(text)) !== null) {
-                if (match[1].trim()) {
+                // 安全策：念のため空マッチで無限ループになるのを防ぐガード
+                if (match[0] === "") {
+                    regex.lastIndex++;
+                    continue;
+                }
+                if (match[1] && match[1].trim()) {
                     parts.push(match[1]);
                 }
             }
