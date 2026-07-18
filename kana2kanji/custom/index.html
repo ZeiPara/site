@@ -43,6 +43,20 @@
     <h1>ひらがな→漢字変換（カスタム辞書対応）</h1>
     
     <!-- 辞書管理セクション -->
+
+    <h2>変換</h2>
+    <p>ひらがなを入力してください：</p>
+    <textarea id="inputText" placeholder="きょうはいいてんきですね。あしたもいいてんきだといいな！" onclick="this.select();"></textarea>
+    
+    <div class="btn-group">
+        <button id="convertBtn" onclick="convertText()">変換する</button>
+        <button id="copyBtn" onclick="copyResult()">結果をコピー</button>
+        <span id="copyMessage" class="copy-toast"></span>
+    </div>
+
+    <h3>変換結果：</h3>
+    <div id="result">ここに結果が表示されます</div>
+
     <div class="dictionary-section">
         <h3>📚 変換辞書管理</h3>
         
@@ -79,19 +93,6 @@
             <button onclick="copyCode()" style="background-color: #28a745; margin-top: 10px;">コードをコピー</button>
         </div>
     </div>
-
-    <h2>変換</h2>
-    <p>ひらがなを入力してください：</p>
-    <textarea id="inputText" placeholder="きょうはいいてんきですね。あしたもいいてんきだといいな！" onclick="this.select();"></textarea>
-    
-    <div class="btn-group">
-        <button id="convertBtn" onclick="convertText()">変換する</button>
-        <button id="copyBtn" onclick="copyResult()">結果をコピー</button>
-        <span id="copyMessage" class="copy-toast"></span>
-    </div>
-
-    <h3>変���結果：</h3>
-    <div id="result">ここに結果が表示されます</div>
 
     <script>
         // ========== 辞書設定 ==========
