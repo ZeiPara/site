@@ -17,26 +17,25 @@
         .error-text { color: #dc3545; font-weight: bold; }
         .copy-toast { display: inline-block; margin-left: 10px; color: #28a745; font-size: 14px; font-weight: bold; }
         
-        /* 辞書管理セクション */
+        /* 辞書表示セクション */
         .dictionary-section { background: #f9f9f9; padding: 20px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #ddd; }
         .dictionary-section h3 { margin-top: 0; }
         
-        .dict-list-container { display: flex; gap: 20px; margin-bottom: 15px; }
-        .dict-list { flex: 1; }
+        .dict-list-container { display: flex; gap: 20px; margin-bottom: 15px; flex-wrap: wrap; }
+        .dict-list { flex: 1; min-width: 300px; }
         .dict-list h4 { margin-top: 0; }
-        .dict-entry { display: flex; gap: 5px; margin-bottom: 5px; }
-        .dict-entry input { flex: 1; padding: 5px; border: 1px solid #ccc; border-radius: 3px; }
-        .dict-entry button { padding: 5px 10px; font-size: 13px; margin: 0; }
-        .dict-entry button:hover { background-color: #0056b3; }
         
-        .dict-list-items { background: white; border: 1px solid #ddd; border-radius: 3px; padding: 10px; max-height: 300px; overflow-y: auto; }
+        .dict-list-items { background: white; border: 1px solid #ddd; border-radius: 3px; padding: 10px; max-height: 250px; overflow-y: auto; }
         .dict-list-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee; font-size: 14px; }
         .dict-list-item:last-child { border-bottom: none; }
-        .dict-list-item button { padding: 3px 8px; font-size: 12px; background-color: #dc3545; }
+        .dict-list-item button { padding: 3px 8px; font-size: 12px; background-color: #dc3545; margin: 0; }
         .dict-list-item button:hover { background-color: #c82333; }
         
         .dict-actions { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
         .dict-actions button { padding: 8px 15px; font-size: 14px; }
+        
+        .code-section { background: #f5f5f5; padding: 15px; border-radius: 3px; border: 1px solid #ddd; font-family: monospace; font-size: 12px; overflow-x: auto; max-height: 300px; overflow-y: auto; }
+        .code-section code { display: block; white-space: pre; color: #333; }
     </style>
 </head>
 <body>
@@ -52,11 +51,6 @@
             <div class="dict-list">
                 <h4>変換前リスト</h4>
                 <p style="font-size: 13px; color: #666;">APIを呼ぶ前に置換します</p>
-                <div class="dict-entry">
-                    <input type="text" id="preKeyInput" placeholder="入力: きょう">
-                    <input type="text" id="preValueInput" placeholder="出力: 今日">
-                    <button onclick="addPreDict()">追加</button>
-                </div>
                 <div class="dict-list-items" id="preDictList"></div>
             </div>
             
@@ -64,20 +58,25 @@
             <div class="dict-list">
                 <h4>変換後リスト</h4>
                 <p style="font-size: 13px; color: #666;">APIから返ってきた後に置換します</p>
-                <div class="dict-entry">
-                    <input type="text" id="postKeyInput" placeholder="入力: 現在">
-                    <input type="text" id="postValueInput" placeholder="出力: いま">
-                    <button onclick="addPostDict()">追加</button>
-                </div>
                 <div class="dict-list-items" id="postDictList"></div>
             </div>
         </div>
         
         <div class="dict-actions">
+            <button onclick="showCode()" style="background-color: #17a2b8;">📋 コードを表示</button>
             <button onclick="exportDict()" style="background-color: #17a2b8;">📥 辞書をエクスポート</button>
             <button onclick="document.getElementById('importFile').click()" style="background-color: #17a2b8;">📤 辞書をインポート</button>
             <input type="file" id="importFile" style="display: none;" accept=".json" onchange="importDict(event)">
             <button onclick="clearAllDict()" style="background-color: #6c757d;">🗑️ すべてクリア</button>
+        </div>
+        
+        <!-- コード表示エリア -->
+        <div id="codeDisplay" style="display: none; margin-top: 15px;">
+            <p style="margin-top: 0; font-size: 13px; color: #666;">この内容をコードに貼り付けてください：</p>
+            <div class="code-section">
+                <code id="codeOutput"></code>
+            </div>
+            <button onclick="copyCode()" style="background-color: #28a745; margin-top: 10px;">コードをコピー</button>
         </div>
     </div>
 
@@ -91,16 +90,26 @@
         <span id="copyMessage" class="copy-toast"></span>
     </div>
 
-    <h3>変換結果：</h3>
+    <h3>変���結果：</h3>
     <div id="result">ここに結果が表示されます</div>
 
     <script>
-        // グローバル変数
-        let currentResultText = "";
-        let preDict = {}; // 変換前辞書
-        let postDict = {}; // 変換後辞書
+        // ========== 辞書設定 ==========
+        // ここに辞書を直接書き込みます
+        let preDict = {
+            // 変換前辞書（APIを呼ぶ前に置換）
+            // 例: "きょう": "今日"
+        };
 
-        // ローカルストレージから辞書を読み込む
+        let postDict = {
+            // 変換後辞書（APIから返ってきた後に置換）
+            // 例: "現在": "いま"
+        };
+        // ================================
+
+        let currentResultText = "";
+
+        // ローカルストレージから辞書を読み込む（手動で設定した辞書に上書きされない）
         function loadDictionaries() {
             const savedPreDict = localStorage.getItem('preDict');
             const savedPostDict = localStorage.getItem('postDict');
@@ -129,9 +138,12 @@
                 div.className = 'dict-list-item';
                 div.innerHTML = `
                     <span><strong>${escapeHtml(key)}</strong> → ${escapeHtml(value)}</span>
-                    <button onclick="deletePreDict('${key}')">削除</button>
+                    <button onclick="deletePreDict('${escapeAttr(key)}')">削除</button>
                 `;
                 preDictList.appendChild(div);
+            }
+            if (Object.keys(preDict).length === 0) {
+                preDictList.innerHTML = '<div style="padding: 8px; color: #999;">（登録されていません）</div>';
             }
             
             // 変換後リスト
@@ -141,49 +153,13 @@
                 div.className = 'dict-list-item';
                 div.innerHTML = `
                     <span><strong>${escapeHtml(key)}</strong> → ${escapeHtml(value)}</span>
-                    <button onclick="deletePostDict('${key}')">削除</button>
+                    <button onclick="deletePostDict('${escapeAttr(key)}')">削除</button>
                 `;
                 postDictList.appendChild(div);
             }
-        }
-
-        // 辞書に追加
-        function addPreDict() {
-            const keyInput = document.getElementById('preKeyInput');
-            const valueInput = document.getElementById('preValueInput');
-            
-            const key = keyInput.value.trim();
-            const value = valueInput.value.trim();
-            
-            if (!key || !value) {
-                alert('キーと値の両方を入力してください');
-                return;
+            if (Object.keys(postDict).length === 0) {
+                postDictList.innerHTML = '<div style="padding: 8px; color: #999;">（登録されていません）</div>';
             }
-            
-            preDict[key] = value;
-            saveDictionaries();
-            renderDictLists();
-            keyInput.value = '';
-            valueInput.value = '';
-        }
-
-        function addPostDict() {
-            const keyInput = document.getElementById('postKeyInput');
-            const valueInput = document.getElementById('postValueInput');
-            
-            const key = keyInput.value.trim();
-            const value = valueInput.value.trim();
-            
-            if (!key || !value) {
-                alert('キーと値の両方を入力してください');
-                return;
-            }
-            
-            postDict[key] = value;
-            saveDictionaries();
-            renderDictLists();
-            keyInput.value = '';
-            valueInput.value = '';
         }
 
         // 辞書から削除
@@ -197,6 +173,29 @@
             delete postDict[key];
             saveDictionaries();
             renderDictLists();
+        }
+
+        // コードを表示
+        function showCode() {
+            const preDictCode = JSON.stringify(preDict, null, 4);
+            const postDictCode = JSON.stringify(postDict, null, 4);
+            
+            const code = `let preDict = ${preDictCode};
+
+let postDict = ${postDictCode};`;
+            
+            document.getElementById('codeOutput').textContent = code;
+            document.getElementById('codeDisplay').style.display = 'block';
+        }
+
+        // コードをコピー
+        function copyCode() {
+            const code = document.getElementById('codeOutput').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                alert('コードをコピーしました！');
+            }).catch(() => {
+                alert('コピーに失敗しました');
+            });
         }
 
         // 辞書をエクスポート
@@ -253,6 +252,11 @@
             return div.innerHTML;
         }
 
+        // 属性用エスケープ
+        function escapeAttr(text) {
+            return text.replace(/'/g, "\\'");
+        }
+
         // 句点で分割する関数
         function splitBySentence(text) {
             const regex = /([^、。！？．\.「」\(\)\{\}\[\]『』]+[、。！？．\.「」\(\)\{\}\[\]『』]?)/g;
@@ -274,7 +278,6 @@
         function applyDictionary(text, dict) {
             let result = text;
             for (const [key, value] of Object.entries(dict)) {
-                // グローバル置換
                 result = result.split(key).join(value);
             }
             return result;
@@ -344,7 +347,7 @@
                 resultText = applyDictionary(resultText, postDict);
 
                 resultDiv.textContent = resultText;
-                currentResultText = resultText; // コピー用に保存
+                currentResultText = resultText;
 
                 // 自動コピーを試みる
                 if (resultText && navigator.clipboard) {
