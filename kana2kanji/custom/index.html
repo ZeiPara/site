@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>かな漢字変換ツール（カスタム辞書対応）</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 900px; margin: 0 auto; }
+        textarea { width: 100%; height: 100px; margin-bottom: 10px; padding: 10px; box-sizing: border-box; }
+        .btn-group { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #cccccc; cursor: not-allowed; }
+        #copyBtn { background-color: #28a745; display: none; }
+        #copyBtn:hover { background-color: #218838; }
+        #result { margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 5px; min-height: 50px; white-space: pre-wrap; }
+        .error-text { color: #dc3545; font-weight: bold; }
+        .copy-toast { display: inline-block; margin-left: 10px; color: #28a745; font-size: 14px; font-weight: bold; }
+        
+        /* 辞書管理セクション */
+        .dictionary-section { background: #f9f9f9; padding: 20px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #ddd; }
+        .dictionary-section h3 { margin-top: 0; }
+        
+        .dict-list-container { display: flex; gap: 20px; margin-bottom: 15px; }
+        .dict-list { flex: 1; }
+        .dict-list h4 { margin-top: 0; }
+        .dict-entry { display: flex; gap: 5px; margin-bottom: 5px; }
+        .dict-entry input { flex: 1; padding: 5px; border: 1px solid #ccc; border-radius: 3px; }
+        .dict-entry button { padding: 5px 10px; font-size: 13px; margin: 0; }
+        .dict-entry button:hover { background-color: #0056b3; }
+        
+        .dict-list-items { background: white; border: 1px solid #ddd; border-radius: 3px; padding: 10px; max-height: 300px; overflow-y: auto; }
+        .dict-list-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee; font-size: 14px; }
+        .dict-list-item:last-child { border-bottom: none; }
+        .dict-list-item button { padding: 3px 8px; font-size: 12px; background-color: #dc3545; }
+        .dict-list-item button:hover { background-color: #c82333; }
+        
+        .dict-actions { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+        .dict-actions button { padding: 8px 15px; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <h1>ひらがな→漢字変換（カスタム辞書対応）</h1>
+    
+    <!-- 辞書管理セクション -->
+    <div class="dictionary-section">
+        <h3>📚 変換辞書管理</h3>
+        
+        <div class="dict-list-container">
+            <!-- 変換前辞書 -->
+            <div class="dict-list">
+                <h4>変換前リスト</h4>
+                <p style="font-size: 13px; color: #666;">APIを呼ぶ前に置換します</p>
+                <div class="dict-entry">
+                    <input type="text" id="preKeyInput" placeholder="入力: きょう">
+                    <input type="text" id="preValueInput" placeholder="出力: 今日">
+                    <button onclick="addPreDict()">追加</button>
+                </div>
+                <div class="dict-list-items" id="preDictList"></div>
+            </div>
+            
+            <!-- 変換後辞書 -->
+            <div class="dict-list">
+                <h4>変換後リスト</h4>
+                <p style="font-size: 13px; color: #666;">APIから返ってきた後に置換します</p>
+                <div class="dict-entry">
+                    <input type="text" id="postKeyInput" placeholder="入力: 現在">
+                    <input type="text" id="postValueInput" placeholder="出力: いま">
+                    <button onclick="addPostDict()">追加</button>
+                </div>
+                <div class="dict-list-items" id="postDictList"></div>
+            </div>
+        </div>
+        
+        <div class="dict-actions">
+            <button onclick="exportDict()" style="background-color: #17a2b8;">📥 辞書をエクスポート</button>
+            <button onclick="document.getElementById('importFile').click()" style="background-color: #17a2b8;">📤 辞書をインポート</button>
+            <input type="file" id="importFile" style="display: none;" accept=".json" onchange="importDict(event)">
+            <button onclick="clearAllDict()" style="background-color: #6c757d;">🗑️ すべてクリア</button>
+        </div>
+    </div>
+
+    <h2>変換</h2>
+    <p>ひらがなを入力してください：</p>
+    <textarea id="inputText" placeholder="きょうはいいてんきですね。あしたもいいてんきだといいな！" onclick="this.select();"></textarea>
+    
+    <div class="btn-group">
+        <button id="convertBtn" onclick="convertText()">変換する</button>
+        <button id="copyBtn" onclick="copyResult()">結果をコピー</button>
+        <span id="copyMessage" class="copy-toast"></span>
+    </div>
+
+    <h3>変換結果：</h3>
+    <div id="result">ここに結果が表示されます</div>
+
+    <script>
+        // グローバル変数
+        let currentResultText = "";
+        let preDict = {}; // 変換前辞書
+        let postDict = {}; // 変換後辞書
+
+        // ローカルストレージから辞書を読み込む
+        function loadDictionaries() {
+            const savedPreDict = localStorage.getItem('preDict');
+            const savedPostDict = localStorage.getItem('postDict');
+            
+            if (savedPreDict) preDict = JSON.parse(savedPreDict);
+            if (savedPostDict) postDict = JSON.parse(savedPostDict);
+            
+            renderDictLists();
+        }
+
+        // ローカルストレージに辞書を保存
+        function saveDictionaries() {
+            localStorage.setItem('preDict', JSON.stringify(preDict));
+            localStorage.setItem('postDict', JSON.stringify(postDict));
+        }
+
+        // 辞書リストをレンダリング
+        function renderDictLists() {
+            const preDictList = document.getElementById('preDictList');
+            const postDictList = document.getElementById('postDictList');
+            
+            // 変換前リスト
+            preDictList.innerHTML = '';
+            for (const [key, value] of Object.entries(preDict)) {
+                const div = document.createElement('div');
+                div.className = 'dict-list-item';
+                div.innerHTML = `
+                    <span><strong>${escapeHtml(key)}</strong> → ${escapeHtml(value)}</span>
+                    <button onclick="deletePreDict('${key}')">削除</button>
+                `;
+                preDictList.appendChild(div);
+            }
+            
+            // 変換後リスト
+            postDictList.innerHTML = '';
+            for (const [key, value] of Object.entries(postDict)) {
+                const div = document.createElement('div');
+                div.className = 'dict-list-item';
+                div.innerHTML = `
+                    <span><strong>${escapeHtml(key)}</strong> → ${escapeHtml(value)}</span>
+                    <button onclick="deletePostDict('${key}')">削除</button>
+                `;
+                postDictList.appendChild(div);
+            }
+        }
+
+        // 辞書に追加
+        function addPreDict() {
+            const keyInput = document.getElementById('preKeyInput');
+            const valueInput = document.getElementById('preValueInput');
+            
+            const key = keyInput.value.trim();
+            const value = valueInput.value.trim();
+            
+            if (!key || !value) {
+                alert('キーと値の両方を入力してください');
+                return;
+            }
+            
+            preDict[key] = value;
+            saveDictionaries();
+            renderDictLists();
+            keyInput.value = '';
+            valueInput.value = '';
+        }
+
+        function addPostDict() {
+            const keyInput = document.getElementById('postKeyInput');
+            const valueInput = document.getElementById('postValueInput');
+            
+            const key = keyInput.value.trim();
+            const value = valueInput.value.trim();
+            
+            if (!key || !value) {
+                alert('キーと値の両方を入力してください');
+                return;
+            }
+            
+            postDict[key] = value;
+            saveDictionaries();
+            renderDictLists();
+            keyInput.value = '';
+            valueInput.value = '';
+        }
+
+        // 辞書から削除
+        function deletePreDict(key) {
+            delete preDict[key];
+            saveDictionaries();
+            renderDictLists();
+        }
+
+        function deletePostDict(key) {
+            delete postDict[key];
+            saveDictionaries();
+            renderDictLists();
+        }
+
+        // 辞書をエクスポート
+        function exportDict() {
+            const data = {
+                preDict: preDict,
+                postDict: postDict
+            };
+            const dataStr = JSON.stringify(data, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `kana2kanji-dict-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // 辞書をインポート
+        function importDict(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    preDict = data.preDict || {};
+                    postDict = data.postDict || {};
+                    saveDictionaries();
+                    renderDictLists();
+                    alert('辞書をインポートしました');
+                } catch (err) {
+                    alert('ファイルの形式が不正です');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // すべての辞書をクリア
+        function clearAllDict() {
+            if (confirm('すべての辞書をクリアしますか？')) {
+                preDict = {};
+                postDict = {};
+                saveDictionaries();
+                renderDictLists();
+            }
+        }
+
+        // HTML エスケープ
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 句点で分割する関数
+        function splitBySentence(text) {
+            const regex = /([^、。！？．\.「」\(\)\{\}\[\]『』]+[、。！？．\.「」\(\)\{\}\[\]『』]?)/g;
+            const parts = [];
+            let match;
+            while ((match = regex.exec(text)) !== null) {
+                if (match[0] === "") {
+                    regex.lastIndex++;
+                    continue;
+                }
+                if (match[1] && match[1].trim()) {
+                    parts.push(match[1]);
+                }
+            }
+            return parts.length > 0 ? parts : [text];
+        }
+
+        // 辞書で置換
+        function applyDictionary(text, dict) {
+            let result = text;
+            for (const [key, value] of Object.entries(dict)) {
+                // グローバル置換
+                result = result.split(key).join(value);
+            }
+            return result;
+        }
+
+        async function convertText() {
+            const inputTextArea = document.getElementById('inputText');
+            const convertBtn = document.getElementById('convertBtn');
+            const copyBtn = document.getElementById('copyBtn');
+            const resultDiv = document.getElementById('result');
+            const copyMessage = document.getElementById('copyMessage');
+            
+            let inputText = inputTextArea.value.trim();
+
+            if (!inputText) {
+                resultDiv.innerHTML = '<span class="error-text">❌ 文字を入力してください。</span>';
+                copyMessage.textContent = "";
+                return;
+            }
+
+            // ステップ1: 変換前辞書を適用
+            inputText = applyDictionary(inputText, preDict);
+
+            // UIリセット
+            convertBtn.disabled = true;
+            copyBtn.style.display = "none"; 
+            resultDiv.textContent = "変換中...";
+            copyMessage.textContent = ""; 
+
+            try {
+                // 句点で分割
+                const sentences = splitBySentence(inputText);
+                let resultText = "";
+
+                for (const sentence of sentences) {
+                    if (!sentence.trim()) continue;
+
+                    const targetUrl = `https://www.google.com/transliterate?langpair=ja-Hira|ja&text=${encodeURIComponent(sentence)}`;
+                    const apiUrl = `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
+
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+                    const response = await fetch(apiUrl, { signal: controller.signal });
+                    clearTimeout(timeoutId);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP_STATUS_${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    if (!data || data.length === 0) {
+                        throw new Error("EMPTY_RESPONSE");
+                    }
+                    
+                    let convertedSentence = "";
+                    for (const item of data) {
+                        if (item && item[1] && item[1][0]) {
+                            convertedSentence += item[1][0];
+                        }
+                    }
+
+                    resultText += convertedSentence;
+                }
+
+                // ステップ2: 変換後辞書を適用
+                resultText = applyDictionary(resultText, postDict);
+
+                resultDiv.textContent = resultText;
+                currentResultText = resultText; // コピー用に保存
+
+                // 自動コピーを試みる
+                if (resultText && navigator.clipboard) {
+                    try {
+                        await navigator.clipboard.writeText(resultText);
+                        copyMessage.textContent = "📋 自動コピーしました！";
+                        setTimeout(() => { copyMessage.textContent = ""; }, 3000);
+                    } catch (e) {
+                        copyBtn.style.display = "inline-block";
+                        copyMessage.textContent = "⚠️ ボタンを押してコピーしてください";
+                    }
+                }
+
+            } catch (error) {
+                let errorMessage = "";
+                if (error.name === 'AbortError') {
+                    errorMessage = "⏱️ タイムアウト: 変換処理に時間がかかりすぎたため中断しました。";
+                } else if (error.message && error.message.startsWith('HTTP_STATUS_')) {
+                    const code = error.message.replace('HTTP_STATUS_', '');
+                    errorMessage = `❌ サーバーエラー: プロキシサーバーが異常を検知しました (コード: ${code})`;
+                } else if (error instanceof SyntaxError) {
+                    errorMessage = "⚠️ データ解析エラー: Googleから返ってきたデータの形が不正です。";
+                } else {
+                    errorMessage = `🔌 通信失敗: ネットワーク未接続か、アクセスが遮断されました。(${error.message})`;
+                }
+
+                resultDiv.innerHTML = `<span class="error-text"></span>`;
+                resultDiv.querySelector('.error-text').textContent = errorMessage;
+            } finally {
+                convertBtn.disabled = false;
+            }
+        }
+
+        async function copyResult() {
+            const copyMessage = document.getElementById('copyMessage');
+            if (!currentResultText) return;
+
+            try {
+                await navigator.clipboard.writeText(currentResultText);
+                copyMessage.textContent = "📋 コピー完了！";
+                setTimeout(() => { copyMessage.textContent = ""; }, 3000);
+            } catch (err) {
+                copyMessage.textContent = "❌ コピーに失敗しました";
+            }
+        }
+
+        // ページ読み込み時に辞書を読み込む
+        window.addEventListener('DOMContentLoaded', loadDictionaries);
+    </script>
+
+</body>
+</html>
