@@ -17,7 +17,7 @@
             --text-main: #1e293b;
             --text-muted: #64748b;
             --border-color: #e2e8f0;
-            --cell-size: 40px; /* マス目を少し広げて余白を十分に確保 */
+            --cell-size: 40px;
         }
 
         * {
@@ -107,7 +107,6 @@
             background-color: #fef2f2;
         }
 
-        /* Canvas Container */
         .grid-container {
             position: relative;
             background: var(--panel-bg);
@@ -145,23 +144,21 @@
             border-color: rgba(59, 130, 246, 0.2);
         }
 
-        /* 元素記号テキスト（背景を白にして後ろの結合線をマスク） */
         .element-symbol {
             font-size: 1.1rem;
             font-weight: bold;
             font-family: 'Georgia', 'Times New Roman', serif;
-            z-index: 5; /* 線や点より前面に配置 */
+            z-index: 5;
             pointer-events: none;
             display: flex;
             align-items: center;
             justify-content: center;
             line-height: 1;
             background-color: #ffffff;
-            padding: 1px 4px; /* 文字周囲に背景パディングをつけて線を自然にカット */
+            padding: 1px 4px;
             border-radius: 2px;
         }
 
-        /* ドット（電子）表示 - 外側に寄せて文字から十分離す */
         .dot {
             position: absolute;
             width: 4px;
@@ -172,7 +169,6 @@
             pointer-events: none;
         }
 
-        /* 上下左右の電子の位置調整 */
         .dot-top-1 { top: 1px; left: 50%; transform: translateX(-50%); }
         .dot-top-2a { top: 1px; left: 35%; transform: translateX(-50%); }
         .dot-top-2b { top: 1px; left: 65%; transform: translateX(-50%); }
@@ -186,10 +182,9 @@
         .dot-left-2b { left: 1px; top: 65%; transform: translateY(-50%); }
 
         .dot-right-1 { right: 1px; top: 50%; transform: translateY(-50%); }
-        .dot-right-2a { right: 1px; top: 35%; transform: translateY(-50%); }
+        .dot-right-2a { right: 1px; top: 35%; transform: translateX(-50%); }
         .dot-right-2b { right: 1px; top: 65%; transform: translateY(-50%); }
 
-        /* 結合線 - z-indexを下げて文字背景の下を潜らせる */
         .bond-h {
             position: absolute;
             height: 1.5px;
@@ -206,7 +201,6 @@
             pointer-events: none;
         }
 
-        /* モーダルダイアログ */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -272,12 +266,6 @@
             outline: none;
         }
 
-        .form-group input[type="text"]:focus,
-        .form-group select:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-        }
-
         .electron-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -292,16 +280,6 @@
 
         .modal-actions .btn {
             flex: 1;
-        }
-
-        @media (max-width: 768px) {
-            :root {
-                --cell-size: 28px;
-            }
-            .element-symbol {
-                font-size: 0.85rem;
-                padding: 0 2px;
-            }
         }
     </style>
 </head>
@@ -475,21 +453,28 @@
                 symbolEl.innerText = data.symbol;
                 cell.appendChild(symbolEl);
 
-                // 右側との結合チェック
+                // 隣接元素との結合チェック
                 const rightNeighbor = (c + 1 < GRID_SIZE) ? gridData[r][c + 1] : null;
                 const connectedRight = rightNeighbor && rightNeighbor.symbol && data.right > 0 && rightNeighbor.left > 0;
                 const rightBondCount = connectedRight ? Math.min(data.right, rightNeighbor.left) : 0;
 
-                // 下側との結合チェック
+                const leftNeighbor = (c - 1 >= 0) ? gridData[r][c - 1] : null;
+                const connectedLeft = leftNeighbor && leftNeighbor.symbol && data.left > 0 && leftNeighbor.right > 0;
+                const leftBondCount = connectedLeft ? Math.min(data.left, leftNeighbor.right) : 0;
+
                 const bottomNeighbor = (r + 1 < GRID_SIZE) ? gridData[r + 1][c] : null;
                 const connectedBottom = bottomNeighbor && bottomNeighbor.symbol && data.bottom > 0 && bottomNeighbor.top > 0;
                 const bottomBondCount = connectedBottom ? Math.min(data.bottom, bottomNeighbor.top) : 0;
 
-                // ドット描画
-                renderDots(cell, data.top, 'top');
-                renderDots(cell, connectedBottom ? data.bottom - bottomBondCount : data.bottom, 'bottom');
-                renderDots(cell, data.left, 'left');
-                renderDots(cell, connectedRight ? data.right - rightBondCount : data.right, 'right');
+                const topNeighbor = (r - 1 >= 0) ? gridData[r - 1][c] : null;
+                const connectedTop = topNeighbor && topNeighbor.symbol && data.top > 0 && topNeighbor.bottom > 0;
+                const topBondCount = connectedTop ? Math.min(data.top, topNeighbor.bottom) : 0;
+
+                // 結合線に使用された電子はドットとして描画しない（線に化けたため非表示）
+                renderDots(cell, data.top - topBondCount, 'top');
+                renderDots(cell, data.bottom - bottomBondCount, 'bottom');
+                renderDots(cell, data.left - leftBondCount, 'left');
+                renderDots(cell, data.right - rightBondCount, 'right');
 
                 // 結合線描画
                 if (rightBondCount > 0) drawHorizontalBond(cell, rightBondCount);
@@ -498,11 +483,12 @@
         }
 
         function renderDots(container, count, position) {
+            if (count <= 0) return;
             if (count === 1) {
                 const dot = document.createElement('div');
                 dot.className = `dot dot-${position}-1`;
                 container.appendChild(dot);
-            } else if (count === 2) {
+            } else if (count >= 2) {
                 const dot1 = document.createElement('div');
                 dot1.className = `dot dot-${position}-2a`;
                 const dot2 = document.createElement('div');
@@ -605,7 +591,7 @@
             render();
         }
 
-        // --- 画像ダウンロード＆自動クロップ機能 ---
+        // --- 修正版：画像ダウンロード＆純粋Canvasクロップ機能 ---
         async function downloadImage() {
             let minR = GRID_SIZE, maxR = -1;
             let minC = GRID_SIZE, maxC = -1;
@@ -628,42 +614,62 @@
 
             const gridElement = document.getElementById('lewis-grid');
 
-            const canvas = await html2canvas(gridElement, {
-                backgroundColor: '#ffffff',
-                scale: 2
-            });
+            try {
+                // html2canvas のレンダリング
+                const canvas = await html2canvas(gridElement, {
+                    backgroundColor: '#ffffff',
+                    scale: 2,
+                    logging: false,
+                    useCORS: true
+                });
 
-            const cellPxWidth = canvas.width / GRID_SIZE;
-            const cellPxHeight = canvas.height / GRID_SIZE;
+                const cellPxWidth = canvas.width / GRID_SIZE;
+                const cellPxHeight = canvas.height / GRID_SIZE;
 
-            const paddingCells = 0.8;
-            
-            const cropLeft = Math.max(0, (minC - paddingCells) * cellPxWidth);
-            const cropTop = Math.max(0, (minR - paddingCells) * cellPxHeight);
-            const cropRight = Math.min(canvas.width, (maxC + 1 + paddingCells) * cellPxWidth);
-            const cropBottom = Math.min(canvas.height, (maxR + 1 + paddingCells) * cellPxHeight);
+                const paddingCells = 0.8;
+                
+                const cropLeft = Math.max(0, (minC - paddingCells) * cellPxWidth);
+                const cropTop = Math.max(0, (minR - paddingCells) * cellPxHeight);
+                const cropRight = Math.min(canvas.width, (maxC + 1 + paddingCells) * cellPxWidth);
+                const cropBottom = Math.min(canvas.height, (maxR + 1 + paddingCells) * cellPxHeight);
 
-            const cropWidth = cropRight - cropLeft;
-            const cropHeight = cropBottom - cropTop;
+                const cropWidth = cropRight - cropLeft;
+                const cropHeight = cropBottom - cropTop;
 
-            const croppedCanvas = document.createElement('canvas');
-            croppedCanvas.width = cropWidth;
-            croppedCanvas.height = cropHeight;
-            const ctx = croppedCanvas.getContext('2d');
+                const croppedCanvas = document.createElement('canvas');
+                croppedCanvas.width = cropWidth;
+                croppedCanvas.height = cropHeight;
+                const ctx = croppedCanvas.getContext('2d');
 
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, cropWidth, cropHeight);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, cropWidth, cropHeight);
 
-            ctx.drawImage(
-                canvas,
-                cropLeft, cropTop, cropWidth, cropHeight,
-                0, 0, cropWidth, cropHeight
-            );
+                ctx.drawImage(
+                    canvas,
+                    cropLeft, cropTop, cropWidth, cropHeight,
+                    0, 0, cropWidth, cropHeight
+                );
 
-            const link = document.createElement('a');
-            link.download = 'lewis_structure.png';
-            link.href = croppedCanvas.toDataURL('image/png');
-            link.click();
+                // Blob変換を挟んでブラウザのダウンロード制限を回避
+                croppedCanvas.toBlob((blob) => {
+                    if (!blob) {
+                        alert('画像の生成に失敗しました。');
+                        return;
+                    }
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.download = 'lewis_structure.png';
+                    link.href = url;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                }, 'image/png');
+
+            } catch (err) {
+                console.error(err);
+                alert('画像のダウンロード処理中にエラーが発生しました。');
+            }
         }
     </script>
 </body>
