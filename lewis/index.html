@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>21x21 ルイス構造式ジェネレーター</title>
-    <!-- html2canvasライブラリの読み込み -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
             --bg-color: #f8fafc;
@@ -20,274 +18,61 @@
             --cell-size: 40px;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { font-size: 1.8rem; margin-bottom: 8px; }
+        p.description { font-size: 0.95rem; color: var(--text-muted); }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
+        .controls { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; }
+        .btn { background-color: var(--panel-bg); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.2s; }
+        .btn:hover { background-color: #f1f5f9; }
+        .btn-primary { background-color: var(--primary); color: white; border: none; }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+        .btn-success { background-color: var(--success); color: white; border: none; }
+        .btn-success:hover { background-color: var(--success-hover); }
+        .btn-danger { color: #ef4444; border-color: #fca5a5; }
 
-        header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
+        .grid-container { background: var(--panel-bg); border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); padding: 20px; overflow: auto; max-width: 100%; }
+        #lewis-grid { display: grid; grid-template-columns: repeat(21, var(--cell-size)); grid-template-rows: repeat(21, var(--cell-size)); gap: 0; user-select: none; }
+        .cell { width: var(--cell-size); height: var(--cell-size); position: relative; cursor: pointer; border: 1px solid transparent; display: flex; align-items: center; justify-content: center; border-radius: 4px; }
+        .cell:hover { background-color: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.2); }
 
-        h1 {
-            font-size: 1.8rem;
-            color: var(--text-main);
-            margin-bottom: 8px;
-        }
+        .element-symbol { font-size: 1.1rem; font-weight: bold; z-index: 5; pointer-events: none; background-color: #ffffff; padding: 1px 4px; border-radius: 2px; color: #1e293b; }
+        .dot { position: absolute; width: 4px; height: 4px; background-color: #000; border-radius: 50%; z-index: 3; pointer-events: none; }
+        .dot-top-1 { top: 2px; left: 50%; transform: translateX(-50%); }
+        .dot-top-2a { top: 2px; left: 35%; transform: translateX(-50%); }
+        .dot-top-2b { top: 2px; left: 65%; transform: translateX(-50%); }
+        .dot-bottom-1 { bottom: 2px; left: 50%; transform: translateX(-50%); }
+        .dot-bottom-2a { bottom: 2px; left: 35%; transform: translateX(-50%); }
+        .dot-bottom-2b { bottom: 2px; left: 65%; transform: translateX(-50%); }
+        .dot-left-1 { left: 2px; top: 50%; transform: translateY(-50%); }
+        .dot-left-2a { left: 2px; top: 35%; transform: translateY(-50%); }
+        .dot-left-2b { left: 2px; top: 65%; transform: translateY(-50%); }
+        .dot-right-1 { right: 2px; top: 50%; transform: translateY(-50%); }
+        .dot-right-2a { right: 2px; top: 35%; transform: translateY(-50%); }
+        .dot-right-2b { right: 2px; top: 65%; transform: translateY(-50%); }
 
-        p.description {
-            font-size: 0.95rem;
-            color: var(--text-muted);
-        }
+        .bond-h { position: absolute; height: 2px; background-color: #1e293b; z-index: 1; pointer-events: none; }
+        .bond-v { position: absolute; width: 2px; background-color: #1e293b; z-index: 1; pointer-events: none; }
 
-        .controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .btn {
-            background-color: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            color: var(--text-main);
-            transition: all 0.2s;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-
-        .btn:hover {
-            background-color: #f1f5f9;
-            border-color: #cbd5e1;
-        }
-
-        .btn-primary {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-        }
-
-        .btn-primary:hover {
-            background-color: var(--primary-hover);
-        }
-
-        .btn-success {
-            background-color: var(--success);
-            color: white;
-            border: none;
-        }
-
-        .btn-success:hover {
-            background-color: var(--success-hover);
-        }
-
-        .btn-danger {
-            color: #ef4444;
-            border-color: #fca5a5;
-        }
-
-        .btn-danger:hover {
-            background-color: #fef2f2;
-        }
-
-        .grid-container {
-            position: relative;
-            background: var(--panel-bg);
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            padding: 20px;
-            overflow: auto;
-            max-width: 100%;
-        }
-
-        #lewis-grid {
-            display: grid;
-            grid-template-columns: repeat(21, var(--cell-size));
-            grid-template-rows: repeat(21, var(--cell-size));
-            gap: 0;
-            user-select: none;
-            background-color: #ffffff;
-        }
-
-        .cell {
-            width: var(--cell-size);
-            height: var(--cell-size);
-            position: relative;
-            cursor: pointer;
-            border: 1px solid transparent;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 4px;
-            transition: background-color 0.15s;
-        }
-
-        .cell:hover {
-            background-color: rgba(59, 130, 246, 0.08);
-            border-color: rgba(59, 130, 246, 0.2);
-        }
-
-        .element-symbol {
-            font-size: 1.1rem;
-            font-weight: bold;
-            font-family: 'Georgia', 'Times New Roman', serif;
-            z-index: 5;
-            pointer-events: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            line-height: 1;
-            background-color: #ffffff;
-            padding: 1px 4px;
-            border-radius: 2px;
-        }
-
-        .dot {
-            position: absolute;
-            width: 4px;
-            height: 4px;
-            background-color: #000;
-            border-radius: 50%;
-            z-index: 3;
-            pointer-events: none;
-        }
-
-        .dot-top-1 { top: 1px; left: 50%; transform: translateX(-50%); }
-        .dot-top-2a { top: 1px; left: 35%; transform: translateX(-50%); }
-        .dot-top-2b { top: 1px; left: 65%; transform: translateX(-50%); }
-
-        .dot-bottom-1 { bottom: 1px; left: 50%; transform: translateX(-50%); }
-        .dot-bottom-2a { bottom: 1px; left: 35%; transform: translateX(-50%); }
-        .dot-bottom-2b { bottom: 1px; left: 65%; transform: translateX(-50%); }
-
-        .dot-left-1 { left: 1px; top: 50%; transform: translateY(-50%); }
-        .dot-left-2a { left: 1px; top: 35%; transform: translateY(-50%); }
-        .dot-left-2b { left: 1px; top: 65%; transform: translateY(-50%); }
-
-        .dot-right-1 { right: 1px; top: 50%; transform: translateY(-50%); }
-        .dot-right-2a { right: 1px; top: 35%; transform: translateX(-50%); }
-        .dot-right-2b { right: 1px; top: 65%; transform: translateY(-50%); }
-
-        .bond-h {
-            position: absolute;
-            height: 1.5px;
-            background-color: #1e293b;
-            z-index: 1;
-            pointer-events: none;
-        }
-
-        .bond-v {
-            position: absolute;
-            width: 1.5px;
-            background-color: #1e293b;
-            z-index: 1;
-            pointer-events: none;
-        }
-
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(15, 23, 42, 0.4);
-            backdrop-filter: blur(2px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 100;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s ease;
-        }
-
-        .modal-overlay.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .modal {
-            background: white;
-            padding: 24px;
-            border-radius: 12px;
-            width: 320px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-            transform: translateY(10px);
-            transition: transform 0.2s ease;
-        }
-
-        .modal-overlay.active .modal {
-            transform: translateY(0);
-        }
-
-        .modal-title {
-            font-size: 1.2rem;
-            margin-bottom: 16px;
-            color: var(--text-main);
-            text-align: center;
-        }
-
-        .form-group {
-            margin-bottom: 14px;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            margin-bottom: 4px;
-        }
-
-        .form-group input[type="text"],
-        .form-group select {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            font-size: 0.95rem;
-            outline: none;
-        }
-
-        .electron-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 8px;
-            margin-top: 20px;
-        }
-
-        .modal-actions .btn {
-            flex: 1;
-        }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.4); display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal { background: white; padding: 24px; border-radius: 12px; width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+        .modal-title { font-size: 1.2rem; margin-bottom: 16px; text-align: center; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
+        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; }
+        .electron-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .modal-actions { display: flex; gap: 8px; margin-top: 20px; }
+        .modal-actions .btn { flex: 1; }
     </style>
 </head>
 <body>
 
     <header>
         <h1>21×21 ルイス構造式ジェネレーター</h1>
-        <p class="description">マス目をタップして元素記号と電子を入力してください。画像保存時は自動で描画領域のみ切り取られます。</p>
+        <p class="description">マス目をタップして編集できます。画像保存時は自動で必要な部分のみ切り取られます。</p>
     </header>
 
     <div class="controls">
@@ -302,51 +87,19 @@
         <div id="lewis-grid"></div>
     </div>
 
-    <!-- 入力モーダル -->
     <div class="modal-overlay" id="input-modal">
         <div class="modal">
-            <h3 class="modal-title" id="modal-cell-pos">マスの編集 (0, 0)</h3>
-            
+            <h3 class="modal-title" id="modal-cell-pos">マスの編集</h3>
             <div class="form-group">
-                <label for="element-input">元素記号 (例: H, C, O, N)</label>
+                <label for="element-input">元素記号</label>
                 <input type="text" id="element-input" placeholder="例: O" maxlength="3">
             </div>
-
             <div class="electron-grid">
-                <div class="form-group">
-                    <label for="e-top">上部の電子数</label>
-                    <select id="e-top">
-                        <option value="0">0</option>
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="e-bottom">下部の電子数</label>
-                    <select id="e-bottom">
-                        <option value="0">0</option>
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="e-left">左側の電子数</label>
-                    <select id="e-left">
-                        <option value="0">0</option>
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="e-right">右側の電子数</label>
-                    <select id="e-right">
-                        <option value="0">0</option>
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                    </select>
-                </div>
+                <div class="form-group"><label>上部の電子</label><select id="e-top"><option value="0">0</option><option value="1">1</option><option value="2">2</option></select></div>
+                <div class="form-group"><label>下部の電子</label><select id="e-bottom"><option value="0">0</option><option value="1">1</option><option value="2">2</option></select></div>
+                <div class="form-group"><label>左側の電子</label><select id="e-left"><option value="0">0</option><option value="1">1</option><option value="2">2</option></select></div>
+                <div class="form-group"><label>右側の電子</label><select id="e-right"><option value="0">0</option><option value="1">1</option><option value="2">2</option></select></div>
             </div>
-
             <div class="modal-actions">
                 <button class="btn btn-danger" onclick="clearCurrentCell()">削除</button>
                 <button class="btn" onclick="closeModal()">キャンセル</button>
@@ -357,28 +110,19 @@
 
     <script>
         const GRID_SIZE = 21;
-        let gridData = Array(GRID_SIZE).fill(null).map(() => 
-            Array(GRID_SIZE).fill(null).map(() => ({ symbol: '', top: 0, right: 0, bottom: 0, left: 0 }))
-        );
+        let gridData = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null).map(() => ({ symbol: '', top: 0, right: 0, bottom: 0, left: 0 })));
+        let selectedRow = -1, selectedCol = -1;
 
-        let selectedRow = -1;
-        let selectedCol = -1;
-
-        document.addEventListener('DOMContentLoaded', () => {
-            createGridUI();
-            loadPreset('H2O');
-        });
+        document.addEventListener('DOMContentLoaded', () => { createGridUI(); loadPreset('H2O'); });
 
         function createGridUI() {
             const gridContainer = document.getElementById('lewis-grid');
             gridContainer.innerHTML = '';
-
             for (let r = 0; r < GRID_SIZE; r++) {
                 for (let c = 0; c < GRID_SIZE; c++) {
                     const cell = document.createElement('div');
                     cell.className = 'cell';
-                    cell.dataset.row = r;
-                    cell.dataset.col = c;
+                    cell.dataset.row = r; cell.dataset.col = c;
                     cell.addEventListener('click', () => openModal(r, c));
                     gridContainer.appendChild(cell);
                 }
@@ -386,66 +130,51 @@
         }
 
         function openModal(r, c) {
-            selectedRow = r;
-            selectedCol = c;
+            selectedRow = r; selectedCol = c;
             const data = gridData[r][c];
-
             document.getElementById('modal-cell-pos').innerText = `マス目の編集 (${r + 1}, ${c + 1})`;
             document.getElementById('element-input').value = data.symbol;
             document.getElementById('e-top').value = data.top;
             document.getElementById('e-bottom').value = data.bottom;
             document.getElementById('e-left').value = data.left;
             document.getElementById('e-right').value = data.right;
-
             document.getElementById('input-modal').classList.add('active');
-            document.getElementById('element-input').focus();
         }
 
-        function closeModal() {
-            document.getElementById('input-modal').classList.remove('active');
-        }
+        function closeModal() { document.getElementById('input-modal').classList.remove('active'); }
 
         function saveCellData() {
             if (selectedRow === -1 || selectedCol === -1) return;
-
-            const symbol = document.getElementById('element-input').value.trim();
-            const top = parseInt(document.getElementById('e-top').value, 10);
-            const bottom = parseInt(document.getElementById('e-bottom').value, 10);
-            const left = parseInt(document.getElementById('e-left').value, 10);
-            const right = parseInt(document.getElementById('e-right').value, 10);
-
-            gridData[selectedRow][selectedCol] = { symbol, top, bottom, left, right };
-
-            closeModal();
-            render();
+            gridData[selectedRow][selectedCol] = {
+                symbol: document.getElementById('element-input').value.trim(),
+                top: parseInt(document.getElementById('e-top').value, 10),
+                bottom: parseInt(document.getElementById('e-bottom').value, 10),
+                left: parseInt(document.getElementById('e-left').value, 10),
+                right: parseInt(document.getElementById('e-right').value, 10)
+            };
+            closeModal(); render();
         }
 
         function clearCurrentCell() {
             if (selectedRow === -1 || selectedCol === -1) return;
             gridData[selectedRow][selectedCol] = { symbol: '', top: 0, bottom: 0, left: 0, right: 0 };
-            closeModal();
-            render();
+            closeModal(); render();
         }
 
         function clearGrid() {
             for (let r = 0; r < GRID_SIZE; r++) {
-                for (let c = 0; c < GRID_SIZE; c++) {
-                    gridData[r][c] = { symbol: '', top: 0, bottom: 0, left: 0, right: 0 };
-                }
+                for (let c = 0; c < GRID_SIZE; c++) gridData[r][c] = { symbol: '', top: 0, bottom: 0, left: 0, right: 0 };
             }
             render();
         }
 
         function render() {
             const cells = document.querySelectorAll('.cell');
-            
             cells.forEach(cell => {
                 const r = parseInt(cell.dataset.row, 10);
                 const c = parseInt(cell.dataset.col, 10);
                 const data = gridData[r][c];
-
                 cell.innerHTML = '';
-
                 if (!data.symbol) return;
 
                 const symbolEl = document.createElement('span');
@@ -453,32 +182,22 @@
                 symbolEl.innerText = data.symbol;
                 cell.appendChild(symbolEl);
 
-                // 隣接元素との結合チェック
-                const rightNeighbor = (c + 1 < GRID_SIZE) ? gridData[r][c + 1] : null;
-                const connectedRight = rightNeighbor && rightNeighbor.symbol && data.right > 0 && rightNeighbor.left > 0;
-                const rightBondCount = connectedRight ? Math.min(data.right, rightNeighbor.left) : 0;
+                const rightN = (c + 1 < GRID_SIZE) ? gridData[r][c + 1] : null;
+                const rightB = (rightN && rightN.symbol) ? Math.min(data.right, rightN.left) : 0;
+                const leftN = (c - 1 >= 0) ? gridData[r][c - 1] : null;
+                const leftB = (leftN && leftN.symbol) ? Math.min(data.left, leftN.right) : 0;
+                const bottomN = (r + 1 < GRID_SIZE) ? gridData[r + 1][c] : null;
+                const bottomB = (bottomN && bottomN.symbol) ? Math.min(data.bottom, bottomN.top) : 0;
+                const topN = (r - 1 >= 0) ? gridData[r - 1][c] : null;
+                const topB = (topN && topN.symbol) ? Math.min(data.top, topN.bottom) : 0;
 
-                const leftNeighbor = (c - 1 >= 0) ? gridData[r][c - 1] : null;
-                const connectedLeft = leftNeighbor && leftNeighbor.symbol && data.left > 0 && leftNeighbor.right > 0;
-                const leftBondCount = connectedLeft ? Math.min(data.left, leftNeighbor.right) : 0;
+                renderDots(cell, data.top - topB, 'top');
+                renderDots(cell, data.bottom - bottomB, 'bottom');
+                renderDots(cell, data.left - leftB, 'left');
+                renderDots(cell, data.right - rightB, 'right');
 
-                const bottomNeighbor = (r + 1 < GRID_SIZE) ? gridData[r + 1][c] : null;
-                const connectedBottom = bottomNeighbor && bottomNeighbor.symbol && data.bottom > 0 && bottomNeighbor.top > 0;
-                const bottomBondCount = connectedBottom ? Math.min(data.bottom, bottomNeighbor.top) : 0;
-
-                const topNeighbor = (r - 1 >= 0) ? gridData[r - 1][c] : null;
-                const connectedTop = topNeighbor && topNeighbor.symbol && data.top > 0 && topNeighbor.bottom > 0;
-                const topBondCount = connectedTop ? Math.min(data.top, topNeighbor.bottom) : 0;
-
-                // 結合線に使用された電子はドットとして描画しない（線に化けたため非表示）
-                renderDots(cell, data.top - topBondCount, 'top');
-                renderDots(cell, data.bottom - bottomBondCount, 'bottom');
-                renderDots(cell, data.left - leftBondCount, 'left');
-                renderDots(cell, data.right - rightBondCount, 'right');
-
-                // 結合線描画
-                if (rightBondCount > 0) drawHorizontalBond(cell, rightBondCount);
-                if (bottomBondCount > 0) drawVerticalBond(cell, bottomBondCount);
+                if (rightB > 0) drawHorizontalBond(cell, rightB);
+                if (bottomB > 0) drawVerticalBond(cell, bottomB);
             });
         }
 
@@ -489,89 +208,35 @@
                 dot.className = `dot dot-${position}-1`;
                 container.appendChild(dot);
             } else if (count >= 2) {
-                const dot1 = document.createElement('div');
-                dot1.className = `dot dot-${position}-2a`;
-                const dot2 = document.createElement('div');
-                dot2.className = `dot dot-${position}-2b`;
-                container.appendChild(dot1);
-                container.appendChild(dot2);
+                const dot1 = document.createElement('div'); dot1.className = `dot dot-${position}-2a`;
+                const dot2 = document.createElement('div'); dot2.className = `dot dot-${position}-2b`;
+                container.appendChild(dot1); container.appendChild(dot2);
             }
         }
 
         function drawHorizontalBond(cell, count) {
-            if (count === 1) {
+            const offsets = count === 1 ? [0] : count === 2 ? [-3, 3] : [-5, 0, 5];
+            offsets.forEach(offset => {
                 const bond = document.createElement('div');
-                bond.className = 'bond-h';
-                bond.style.width = '100%';
-                bond.style.left = '50%';
-                bond.style.top = 'calc(50% - 1px)';
+                bond.className = 'bond-h'; bond.style.width = '100%'; bond.style.left = '50%';
+                bond.style.top = `calc(50% + ${offset}px)`;
                 cell.appendChild(bond);
-            } else if (count === 2) {
-                const bond1 = document.createElement('div');
-                bond1.className = 'bond-h';
-                bond1.style.width = '100%';
-                bond1.style.left = '50%';
-                bond1.style.top = 'calc(50% - 4px)';
-                
-                const bond2 = document.createElement('div');
-                bond2.className = 'bond-h';
-                bond2.style.width = '100%';
-                bond2.style.left = '50%';
-                bond2.style.top = 'calc(50% + 2px)';
-
-                cell.appendChild(bond1);
-                cell.appendChild(bond2);
-            } else if (count >= 3) {
-                for (let offset of [-5, -1, 3]) {
-                    const bond = document.createElement('div');
-                    bond.className = 'bond-h';
-                    bond.style.width = '100%';
-                    bond.style.left = '50%';
-                    bond.style.top = `calc(50% + ${offset}px)`;
-                    cell.appendChild(bond);
-                }
-            }
+            });
         }
 
         function drawVerticalBond(cell, count) {
-            if (count === 1) {
+            const offsets = count === 1 ? [0] : count === 2 ? [-3, 3] : [-5, 0, 5];
+            offsets.forEach(offset => {
                 const bond = document.createElement('div');
-                bond.className = 'bond-v';
-                bond.style.height = '100%';
-                bond.style.top = '50%';
-                bond.style.left = 'calc(50% - 1px)';
+                bond.className = 'bond-v'; bond.style.height = '100%'; bond.style.top = '50%';
+                bond.style.left = `calc(50% + ${offset}px)`;
                 cell.appendChild(bond);
-            } else if (count === 2) {
-                const bond1 = document.createElement('div');
-                bond1.className = 'bond-v';
-                bond1.style.height = '100%';
-                bond1.style.top = '50%';
-                bond1.style.left = 'calc(50% - 4px)';
-
-                const bond2 = document.createElement('div');
-                bond2.className = 'bond-v';
-                bond2.style.height = '100%';
-                bond2.style.top = '50%';
-                bond2.style.left = 'calc(50% + 2px)';
-
-                cell.appendChild(bond1);
-                cell.appendChild(bond2);
-            } else if (count >= 3) {
-                for (let offset of [-5, -1, 3]) {
-                    const bond = document.createElement('div');
-                    bond.className = 'bond-v';
-                    bond.style.height = '100%';
-                    bond.style.top = `50%`;
-                    bond.style.left = `calc(50% + ${offset}px)`;
-                    cell.appendChild(bond);
-                }
-            }
+            });
         }
 
         function loadPreset(type) {
             clearGrid();
             const mid = Math.floor(GRID_SIZE / 2);
-
             if (type === 'H2O') {
                 gridData[mid][mid] = { symbol: 'O', top: 2, bottom: 2, left: 1, right: 1 };
                 gridData[mid][mid - 1] = { symbol: 'H', top: 0, bottom: 0, left: 0, right: 1 };
@@ -587,89 +252,116 @@
                 gridData[mid][mid - 1] = { symbol: 'H', top: 0, bottom: 0, left: 0, right: 1 };
                 gridData[mid][mid + 1] = { symbol: 'H', top: 0, bottom: 0, left: 1, right: 0 };
             }
-
             render();
         }
 
-        // --- 修正版：画像ダウンロード＆純粋Canvasクロップ機能 ---
-        async function downloadImage() {
-            let minR = GRID_SIZE, maxR = -1;
-            let minC = GRID_SIZE, maxC = -1;
-
+        // --- 純粋Canvas直描画方式による確実な画像保存 ---
+        function downloadImage() {
+            let minR = GRID_SIZE, maxR = -1, minC = GRID_SIZE, maxC = -1;
             for (let r = 0; r < GRID_SIZE; r++) {
                 for (let c = 0; c < GRID_SIZE; c++) {
                     if (gridData[r][c].symbol !== '') {
-                        if (r < minR) minR = r;
-                        if (r > maxR) maxR = r;
-                        if (c < minC) minC = c;
-                        if (c > maxC) maxC = c;
+                        if (r < minR) minR = r; if (r > maxR) maxR = r;
+                        if (c < minC) minC = c; if (c > maxC) maxC = c;
                     }
                 }
             }
 
-            if (maxR === -1) {
-                alert('画像として保存する元素が配置されていません。');
-                return;
-            }
+            if (maxR === -1) { alert('保存する元素が配置されていません。'); return; }
 
-            const gridElement = document.getElementById('lewis-grid');
+            const padding = 0.8;
+            const startCol = Math.max(0, minC - padding);
+            const startRow = Math.max(0, minR - padding);
+            const endCol = Math.min(GRID_SIZE, maxC + 1 + padding);
+            const endRow = Math.min(GRID_SIZE, maxR + 1 + padding);
 
-            try {
-                // html2canvas のレンダリング
-                const canvas = await html2canvas(gridElement, {
-                    backgroundColor: '#ffffff',
-                    scale: 2,
-                    logging: false,
-                    useCORS: true
-                });
+            const cellSize = 60; // 綺麗に印刷/拡大できるよう高解像度化
+            const width = (endCol - startCol) * cellSize;
+            const height = (endRow - startRow) * cellSize;
 
-                const cellPxWidth = canvas.width / GRID_SIZE;
-                const cellPxHeight = canvas.height / GRID_SIZE;
+            const canvas = document.createElement('canvas');
+            canvas.width = width; canvas.height = height;
+            const ctx = canvas.getContext('2d');
 
-                const paddingCells = 0.8;
-                
-                const cropLeft = Math.max(0, (minC - paddingCells) * cellPxWidth);
-                const cropTop = Math.max(0, (minR - paddingCells) * cellPxHeight);
-                const cropRight = Math.min(canvas.width, (maxC + 1 + paddingCells) * cellPxWidth);
-                const cropBottom = Math.min(canvas.height, (maxR + 1 + paddingCells) * cellPxHeight);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
 
-                const cropWidth = cropRight - cropLeft;
-                const cropHeight = cropBottom - cropTop;
+            const getX = (c) => (c - startCol) * cellSize;
+            const getY = (r) => (r - startRow) * cellSize;
 
-                const croppedCanvas = document.createElement('canvas');
-                croppedCanvas.width = cropWidth;
-                croppedCanvas.height = cropHeight;
-                const ctx = croppedCanvas.getContext('2d');
+            // 1. 結合線の描画
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    const data = gridData[r][c];
+                    if (!data.symbol) continue;
 
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(0, 0, cropWidth, cropHeight);
-
-                ctx.drawImage(
-                    canvas,
-                    cropLeft, cropTop, cropWidth, cropHeight,
-                    0, 0, cropWidth, cropHeight
-                );
-
-                // Blob変換を挟んでブラウザのダウンロード制限を回避
-                croppedCanvas.toBlob((blob) => {
-                    if (!blob) {
-                        alert('画像の生成に失敗しました。');
-                        return;
+                    if (c + 1 < GRID_SIZE && gridData[r][c + 1].symbol) {
+                        const rightN = gridData[r][c + 1];
+                        const bondCount = Math.min(data.right, rightN.left);
+                        if (bondCount > 0) {
+                            const x1 = getX(c) + cellSize / 2, x2 = getX(c + 1) + cellSize / 2, y = getY(r) + cellSize / 2;
+                            ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 2.5;
+                            const offsets = bondCount === 1 ? [0] : bondCount === 2 ? [-5, 5] : [-8, 0, 8];
+                            offsets.forEach(off => { ctx.beginPath(); ctx.moveTo(x1, y + off); ctx.lineTo(x2, y + off); ctx.stroke(); });
+                        }
                     }
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.download = 'lewis_structure.png';
-                    link.href = url;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                }, 'image/png');
 
-            } catch (err) {
-                console.error(err);
-                alert('画像のダウンロード処理中にエラーが発生しました。');
+                    if (r + 1 < GRID_SIZE && gridData[r + 1][c].symbol) {
+                        const bottomN = gridData[r + 1][c];
+                        const bondCount = Math.min(data.bottom, bottomN.top);
+                        if (bondCount > 0) {
+                            const x = getX(c) + cellSize / 2, y1 = getY(r) + cellSize / 2, y2 = getY(r + 1) + cellSize / 2;
+                            ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 2.5;
+                            const offsets = bondCount === 1 ? [0] : bondCount === 2 ? [-5, 5] : [-8, 0, 8];
+                            offsets.forEach(off => { ctx.beginPath(); ctx.moveTo(x + off, y1); ctx.lineTo(x + off, y2); ctx.stroke(); });
+                        }
+                    }
+                }
             }
+
+            // 2. 電子とテキストの描画
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    const data = gridData[r][c];
+                    if (!data.symbol) continue;
+
+                    const cx = getX(c) + cellSize / 2, cy = getY(r) + cellSize / 2;
+                    const rightN = (c + 1 < GRID_SIZE) ? gridData[r][c + 1] : null;
+                    const leftN = (c - 1 >= 0) ? gridData[r][c - 1] : null;
+                    const bottomN = (r + 1 < GRID_SIZE) ? gridData[r + 1][c] : null;
+                    const topN = (r - 1 >= 0) ? gridData[r - 1][c] : null;
+
+                    const drawDots = (count, pos) => {
+                        if (count <= 0) return;
+                        ctx.fillStyle = '#000000';
+                        const offset = cellSize * 0.42;
+                        let coords = [];
+                        if (pos === 'top') coords = count === 1 ? [[cx, cy - offset]] : [[cx - 6, cy - offset], [cx + 6, cy - offset]];
+                        if (pos === 'bottom') coords = count === 1 ? [[cx, cy + offset]] : [[cx - 6, cy + offset], [cx + 6, cy + offset]];
+                        if (pos === 'left') coords = count === 1 ? [[cx - offset, cy]] : [[cx - offset, cy - 6], [cx - offset, cy + 6]];
+                        if (pos === 'right') coords = count === 1 ? [[cx + offset, cy]] : [[cx + offset, cy - 6], [cx + offset, cy + 6]];
+                        coords.forEach(([dx, dy]) => { ctx.beginPath(); ctx.arc(dx, dy, 3, 0, Math.PI * 2); ctx.fill(); });
+                    };
+
+                    drawDots(data.top - ((topN && topN.symbol) ? Math.min(data.top, topN.bottom) : 0), 'top');
+                    drawDots(data.bottom - ((bottomN && bottomN.symbol) ? Math.min(data.bottom, bottomN.top) : 0), 'bottom');
+                    drawDots(data.left - ((leftN && leftN.symbol) ? Math.min(data.left, leftN.right) : 0), 'left');
+                    drawDots(data.right - ((rightN && rightN.symbol) ? Math.min(data.right, rightN.left) : 0), 'right');
+
+                    ctx.font = 'bold 26px sans-serif';
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    const textMetrics = ctx.measureText(data.symbol);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(cx - (textMetrics.width + 12) / 2, cy - 15, textMetrics.width + 12, 30);
+                    ctx.fillStyle = '#1e293b';
+                    ctx.fillText(data.symbol, cx, cy);
+                }
+            }
+
+            const link = document.createElement('a');
+            link.download = 'lewis_structure.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
         }
     </script>
 </body>
