@@ -17,7 +17,7 @@
             --text-main: #1e293b;
             --text-muted: #64748b;
             --border-color: #e2e8f0;
-            --cell-size: 36px; /* パディング・余白を広げるためサイズを少し拡大 */
+            --cell-size: 40px; /* マス目を少し広げて余白を十分に確保 */
         }
 
         * {
@@ -132,7 +132,7 @@
             height: var(--cell-size);
             position: relative;
             cursor: pointer;
-            border: 1px solid transparent; /* 枠線は非描画 */
+            border: 1px solid transparent;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -145,49 +145,54 @@
             border-color: rgba(59, 130, 246, 0.2);
         }
 
-        /* 元素記号テキスト（サイズと文字パディング調整） */
+        /* 元素記号テキスト（背景を白にして後ろの結合線をマスク） */
         .element-symbol {
-            font-size: 1.15rem;
+            font-size: 1.1rem;
             font-weight: bold;
             font-family: 'Georgia', 'Times New Roman', serif;
-            z-index: 2;
+            z-index: 5; /* 線や点より前面に配置 */
             pointer-events: none;
-            display: inline-block;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             line-height: 1;
+            background-color: #ffffff;
+            padding: 1px 4px; /* 文字周囲に背景パディングをつけて線を自然にカット */
+            border-radius: 2px;
         }
 
-        /* ドット（電子）表示 - セル枠から少し離すようマージン設定 */
+        /* ドット（電子）表示 - 外側に寄せて文字から十分離す */
         .dot {
             position: absolute;
-            width: 5px;
-            height: 5px;
+            width: 4px;
+            height: 4px;
             background-color: #000;
             border-radius: 50%;
             z-index: 3;
             pointer-events: none;
         }
 
-        /* 上下左右の電子の配置（パディング確保のため外側より少し内側に寄せる） */
-        .dot-top-1 { top: 3px; left: 50%; transform: translateX(-50%); }
-        .dot-top-2a { top: 3px; left: 35%; transform: translateX(-50%); }
-        .dot-top-2b { top: 3px; left: 65%; transform: translateX(-50%); }
+        /* 上下左右の電子の位置調整 */
+        .dot-top-1 { top: 1px; left: 50%; transform: translateX(-50%); }
+        .dot-top-2a { top: 1px; left: 35%; transform: translateX(-50%); }
+        .dot-top-2b { top: 1px; left: 65%; transform: translateX(-50%); }
 
-        .dot-bottom-1 { bottom: 3px; left: 50%; transform: translateX(-50%); }
-        .dot-bottom-2a { bottom: 3px; left: 35%; transform: translateX(-50%); }
-        .dot-bottom-2b { bottom: 3px; left: 65%; transform: translateX(-50%); }
+        .dot-bottom-1 { bottom: 1px; left: 50%; transform: translateX(-50%); }
+        .dot-bottom-2a { bottom: 1px; left: 35%; transform: translateX(-50%); }
+        .dot-bottom-2b { bottom: 1px; left: 65%; transform: translateX(-50%); }
 
-        .dot-left-1 { left: 3px; top: 50%; transform: translateY(-50%); }
-        .dot-left-2a { left: 3px; top: 35%; transform: translateY(-50%); }
-        .dot-left-2b { left: 3px; top: 65%; transform: translateY(-50%); }
+        .dot-left-1 { left: 1px; top: 50%; transform: translateY(-50%); }
+        .dot-left-2a { left: 1px; top: 35%; transform: translateY(-50%); }
+        .dot-left-2b { left: 1px; top: 65%; transform: translateY(-50%); }
 
-        .dot-right-1 { right: 3px; top: 50%; transform: translateY(-50%); }
-        .dot-right-2a { right: 3px; top: 35%; transform: translateY(-50%); }
-        .dot-right-2b { right: 3px; top: 65%; transform: translateY(-50%); }
+        .dot-right-1 { right: 1px; top: 50%; transform: translateY(-50%); }
+        .dot-right-2a { right: 1px; top: 35%; transform: translateY(-50%); }
+        .dot-right-2b { right: 1px; top: 65%; transform: translateY(-50%); }
 
-        /* 結合線 */
+        /* 結合線 - z-indexを下げて文字背景の下を潜らせる */
         .bond-h {
             position: absolute;
-            height: 2px;
+            height: 1.5px;
             background-color: #1e293b;
             z-index: 1;
             pointer-events: none;
@@ -195,7 +200,7 @@
 
         .bond-v {
             position: absolute;
-            width: 2px;
+            width: 1.5px;
             background-color: #1e293b;
             z-index: 1;
             pointer-events: none;
@@ -291,10 +296,11 @@
 
         @media (max-width: 768px) {
             :root {
-                --cell-size: 26px;
+                --cell-size: 28px;
             }
             .element-symbol {
-                font-size: 0.9rem;
+                font-size: 0.85rem;
+                padding: 0 2px;
             }
         }
     </style>
@@ -519,18 +525,18 @@
                 bond1.className = 'bond-h';
                 bond1.style.width = '100%';
                 bond1.style.left = '50%';
-                bond1.style.top = 'calc(50% - 5px)';
+                bond1.style.top = 'calc(50% - 4px)';
                 
                 const bond2 = document.createElement('div');
                 bond2.className = 'bond-h';
                 bond2.style.width = '100%';
                 bond2.style.left = '50%';
-                bond2.style.top = 'calc(50% + 3px)';
+                bond2.style.top = 'calc(50% + 2px)';
 
                 cell.appendChild(bond1);
                 cell.appendChild(bond2);
             } else if (count >= 3) {
-                for (let offset of [-6, -1, 4]) {
+                for (let offset of [-5, -1, 3]) {
                     const bond = document.createElement('div');
                     bond.className = 'bond-h';
                     bond.style.width = '100%';
@@ -554,18 +560,18 @@
                 bond1.className = 'bond-v';
                 bond1.style.height = '100%';
                 bond1.style.top = '50%';
-                bond1.style.left = 'calc(50% - 5px)';
+                bond1.style.left = 'calc(50% - 4px)';
 
                 const bond2 = document.createElement('div');
                 bond2.className = 'bond-v';
                 bond2.style.height = '100%';
                 bond2.style.top = '50%';
-                bond2.style.left = 'calc(50% + 3px)';
+                bond2.style.left = 'calc(50% + 2px)';
 
                 cell.appendChild(bond1);
                 cell.appendChild(bond2);
             } else if (count >= 3) {
-                for (let offset of [-6, -1, 4]) {
+                for (let offset of [-5, -1, 3]) {
                     const bond = document.createElement('div');
                     bond.className = 'bond-v';
                     bond.style.height = '100%';
@@ -599,9 +605,8 @@
             render();
         }
 
-        // --- 画像ダウンロード＆自動クロップ（トリミング）機能 ---
+        // --- 画像ダウンロード＆自動クロップ機能 ---
         async function downloadImage() {
-            // 元素が描画されているマス（バウンディングボックス）の最小・最大インデックスを取得
             let minR = GRID_SIZE, maxR = -1;
             let minC = GRID_SIZE, maxC = -1;
 
@@ -616,7 +621,6 @@
                 }
             }
 
-            // 何も入力されていない場合
             if (maxR === -1) {
                 alert('画像として保存する元素が配置されていません。');
                 return;
@@ -624,18 +628,15 @@
 
             const gridElement = document.getElementById('lewis-grid');
 
-            // html2canvasでグリッド全体をレンダリング
             const canvas = await html2canvas(gridElement, {
                 backgroundColor: '#ffffff',
-                scale: 2 // 高解像度出力
+                scale: 2
             });
 
-            // 1セルあたりのピクセルサイズ（キャンバススケール考慮）
             const cellPxWidth = canvas.width / GRID_SIZE;
             const cellPxHeight = canvas.height / GRID_SIZE;
 
-            // クロップ範囲の計算（文字・周りのドットを切らないよう1マスのパディングを追加）
-            const paddingCells = 0.8; // 周囲のパディング幅（セル単位）
+            const paddingCells = 0.8;
             
             const cropLeft = Math.max(0, (minC - paddingCells) * cellPxWidth);
             const cropTop = Math.max(0, (minR - paddingCells) * cellPxHeight);
@@ -645,24 +646,20 @@
             const cropWidth = cropRight - cropLeft;
             const cropHeight = cropBottom - cropTop;
 
-            // クロップ用のCanvasを作成
             const croppedCanvas = document.createElement('canvas');
             croppedCanvas.width = cropWidth;
             croppedCanvas.height = cropHeight;
             const ctx = croppedCanvas.getContext('2d');
 
-            // 背景を白で塗りつぶし
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, cropWidth, cropHeight);
 
-            // 該当部分のみ切り抜いてコピー
             ctx.drawImage(
                 canvas,
                 cropLeft, cropTop, cropWidth, cropHeight,
                 0, 0, cropWidth, cropHeight
             );
 
-            // PNGとしてダウンロード発火
             const link = document.createElement('a');
             link.download = 'lewis_structure.png';
             link.href = croppedCanvas.toDataURL('image/png');
