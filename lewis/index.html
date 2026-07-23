@@ -4,16 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>21x21 ルイス構造式ジェネレーター</title>
+    <!-- html2canvasライブラリの読み込み -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
             --bg-color: #f8fafc;
             --panel-bg: #ffffff;
             --primary: #3b82f6;
             --primary-hover: #2563eb;
+            --success: #10b981;
+            --success-hover: #059669;
             --text-main: #1e293b;
             --text-muted: #64748b;
             --border-color: #e2e8f0;
-            --cell-size: 32px;
+            --cell-size: 36px; /* パディング・余白を広げるためサイズを少し拡大 */
         }
 
         * {
@@ -84,6 +88,16 @@
             background-color: var(--primary-hover);
         }
 
+        .btn-success {
+            background-color: var(--success);
+            color: white;
+            border: none;
+        }
+
+        .btn-success:hover {
+            background-color: var(--success-hover);
+        }
+
         .btn-danger {
             color: #ef4444;
             border-color: #fca5a5;
@@ -110,6 +124,7 @@
             grid-template-rows: repeat(21, var(--cell-size));
             gap: 0;
             user-select: none;
+            background-color: #ffffff;
         }
 
         .cell {
@@ -117,7 +132,7 @@
             height: var(--cell-size);
             position: relative;
             cursor: pointer;
-            border: 1px solid transparent; /* 枠線は非描画（デバッグ用・ホバー時のみ可視化） */
+            border: 1px solid transparent; /* 枠線は非描画 */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -130,46 +145,44 @@
             border-color: rgba(59, 130, 246, 0.2);
         }
 
-        /* 元素記号テキスト */
+        /* 元素記号テキスト（サイズと文字パディング調整） */
         .element-symbol {
-            font-size: 1.1rem;
+            font-size: 1.15rem;
             font-weight: bold;
             font-family: 'Georgia', 'Times New Roman', serif;
             z-index: 2;
             pointer-events: none;
+            display: inline-block;
+            line-height: 1;
         }
 
-        /* ドット（電子）表示 */
+        /* ドット（電子）表示 - セル枠から少し離すようマージン設定 */
         .dot {
             position: absolute;
-            width: 4px;
-            height: 4px;
+            width: 5px;
+            height: 5px;
             background-color: #000;
             border-radius: 50%;
             z-index: 3;
             pointer-events: none;
         }
 
-        /* 上下左右の電子の配置 */
-        /* 上 */
-        .dot-top-1 { top: 2px; left: 50%; transform: translateX(-50%); }
-        .dot-top-2a { top: 2px; left: 35%; transform: translateX(-50%); }
-        .dot-top-2b { top: 2px; left: 65%; transform: translateX(-50%); }
+        /* 上下左右の電子の配置（パディング確保のため外側より少し内側に寄せる） */
+        .dot-top-1 { top: 3px; left: 50%; transform: translateX(-50%); }
+        .dot-top-2a { top: 3px; left: 35%; transform: translateX(-50%); }
+        .dot-top-2b { top: 3px; left: 65%; transform: translateX(-50%); }
 
-        /* 下 */
-        .dot-bottom-1 { bottom: 2px; left: 50%; transform: translateX(-50%); }
-        .dot-bottom-2a { bottom: 2px; left: 35%; transform: translateX(-50%); }
-        .dot-bottom-2b { bottom: 2px; left: 65%; transform: translateX(-50%); }
+        .dot-bottom-1 { bottom: 3px; left: 50%; transform: translateX(-50%); }
+        .dot-bottom-2a { bottom: 3px; left: 35%; transform: translateX(-50%); }
+        .dot-bottom-2b { bottom: 3px; left: 65%; transform: translateX(-50%); }
 
-        /* 左 */
-        .dot-left-1 { left: 2px; top: 50%; transform: translateY(-50%); }
-        .dot-left-2a { left: 2px; top: 35%; transform: translateY(-50%); }
-        .dot-left-2b { left: 2px; top: 65%; transform: translateY(-50%); }
+        .dot-left-1 { left: 3px; top: 50%; transform: translateY(-50%); }
+        .dot-left-2a { left: 3px; top: 35%; transform: translateY(-50%); }
+        .dot-left-2b { left: 3px; top: 65%; transform: translateY(-50%); }
 
-        /* 右 */
-        .dot-right-1 { right: 2px; top: 50%; transform: translateY(-50%); }
-        .dot-right-2a { right: 2px; top: 35%; transform: translateY(-50%); }
-        .dot-right-2b { right: 2px; top: 65%; transform: translateY(-50%); }
+        .dot-right-1 { right: 3px; top: 50%; transform: translateY(-50%); }
+        .dot-right-2a { right: 3px; top: 35%; transform: translateY(-50%); }
+        .dot-right-2b { right: 3px; top: 65%; transform: translateY(-50%); }
 
         /* 結合線 */
         .bond-h {
@@ -276,13 +289,12 @@
             flex: 1;
         }
 
-        /* レスポンシブ調整 */
         @media (max-width: 768px) {
             :root {
-                --cell-size: 24px;
+                --cell-size: 26px;
             }
             .element-symbol {
-                font-size: 0.85rem;
+                font-size: 0.9rem;
             }
         }
     </style>
@@ -291,18 +303,19 @@
 
     <header>
         <h1>21×21 ルイス構造式ジェネレーター</h1>
-        <p class="description">マス目をタップして元素記号と電子を入力してください。隣接する電子は自動で結合線になります。</p>
+        <p class="description">マス目をタップして元素記号と電子を入力してください。画像保存時は自動で描画領域のみ切り取られます。</p>
     </header>
 
     <div class="controls">
         <button class="btn" onclick="loadPreset('H2O')">水 (H₂O)</button>
         <button class="btn" onclick="loadPreset('CO2')">二酸化炭素 (CO₂)</button>
         <button class="btn" onclick="loadPreset('CH4')">メタン (CH₄)</button>
+        <button class="btn btn-success" onclick="downloadImage()">📷 画像として保存</button>
         <button class="btn btn-danger" onclick="clearGrid()">クリア</button>
     </div>
 
     <div class="grid-container">
-        <div id-="lewis-grid" id="lewis-grid"></div>
+        <div id="lewis-grid"></div>
     </div>
 
     <!-- 入力モーダル -->
@@ -360,8 +373,6 @@
 
     <script>
         const GRID_SIZE = 21;
-        // 21x21のグリッドデータを保持する2次元配列
-        // { symbol: '', top: 0, right: 0, bottom: 0, left: 0 }
         let gridData = Array(GRID_SIZE).fill(null).map(() => 
             Array(GRID_SIZE).fill(null).map(() => ({ symbol: '', top: 0, right: 0, bottom: 0, left: 0 }))
         );
@@ -369,10 +380,9 @@
         let selectedRow = -1;
         let selectedCol = -1;
 
-        // 初期化
         document.addEventListener('DOMContentLoaded', () => {
             createGridUI();
-            loadPreset('H2O'); // デフォルトで水を表示
+            loadPreset('H2O');
         });
 
         function createGridUI() {
@@ -450,17 +460,15 @@
                 const c = parseInt(cell.dataset.col, 10);
                 const data = gridData[r][c];
 
-                cell.innerHTML = ''; // セルをクリア
+                cell.innerHTML = '';
 
                 if (!data.symbol) return;
 
-                // 元素記号を表示
                 const symbolEl = document.createElement('span');
                 symbolEl.className = 'element-symbol';
                 symbolEl.innerText = data.symbol;
                 cell.appendChild(symbolEl);
 
-                // 隣接するセルとの共有結合状態をチェック
                 // 右側との結合チェック
                 const rightNeighbor = (c + 1 < GRID_SIZE) ? gridData[r][c + 1] : null;
                 const connectedRight = rightNeighbor && rightNeighbor.symbol && data.right > 0 && rightNeighbor.left > 0;
@@ -471,25 +479,15 @@
                 const connectedBottom = bottomNeighbor && bottomNeighbor.symbol && data.bottom > 0 && bottomNeighbor.top > 0;
                 const bottomBondCount = connectedBottom ? Math.min(data.bottom, bottomNeighbor.top) : 0;
 
-                // --- ドット描画 ---
-                // 上
+                // ドット描画
                 renderDots(cell, data.top, 'top');
-                // 下（結合していない電子のみ描画）
                 renderDots(cell, connectedBottom ? data.bottom - bottomBondCount : data.bottom, 'bottom');
-                // 左
                 renderDots(cell, data.left, 'left');
-                // 右（結合していない電子のみ描画）
                 renderDots(cell, connectedRight ? data.right - rightBondCount : data.right, 'right');
 
-                // --- 結合線描画 ---
-                // 右方向への結合線
-                if (rightBondCount > 0) {
-                    drawHorizontalBond(cell, rightBondCount);
-                }
-                // 下方向への結合線
-                if (bottomBondCount > 0) {
-                    drawVerticalBond(cell, bottomBondCount);
-                }
+                // 結合線描画
+                if (rightBondCount > 0) drawHorizontalBond(cell, rightBondCount);
+                if (bottomBondCount > 0) drawVerticalBond(cell, bottomBondCount);
             });
         }
 
@@ -509,7 +507,6 @@
         }
 
         function drawHorizontalBond(cell, count) {
-            // セルの中心から右隣のセルの中心まで伸びる線
             if (count === 1) {
                 const bond = document.createElement('div');
                 bond.className = 'bond-h';
@@ -522,18 +519,18 @@
                 bond1.className = 'bond-h';
                 bond1.style.width = '100%';
                 bond1.style.left = '50%';
-                bond1.style.top = 'calc(50% - 4px)';
+                bond1.style.top = 'calc(50% - 5px)';
                 
                 const bond2 = document.createElement('div');
                 bond2.className = 'bond-h';
                 bond2.style.width = '100%';
                 bond2.style.left = '50%';
-                bond2.style.top = 'calc(50% + 2px)';
+                bond2.style.top = 'calc(50% + 3px)';
 
                 cell.appendChild(bond1);
                 cell.appendChild(bond2);
             } else if (count >= 3) {
-                for (let offset of [-5, -1, 3]) {
+                for (let offset of [-6, -1, 4]) {
                     const bond = document.createElement('div');
                     bond.className = 'bond-h';
                     bond.style.width = '100%';
@@ -545,7 +542,6 @@
         }
 
         function drawVerticalBond(cell, count) {
-            // セルの中心から下隣のセルの中心まで伸びる線
             if (count === 1) {
                 const bond = document.createElement('div');
                 bond.className = 'bond-v';
@@ -558,45 +554,41 @@
                 bond1.className = 'bond-v';
                 bond1.style.height = '100%';
                 bond1.style.top = '50%';
-                bond1.style.left = 'calc(50% - 4px)';
+                bond1.style.left = 'calc(50% - 5px)';
 
                 const bond2 = document.createElement('div');
                 bond2.className = 'bond-v';
                 bond2.style.height = '100%';
                 bond2.style.top = '50%';
-                bond2.style.left = 'calc(50% + 2px)';
+                bond2.style.left = 'calc(50% + 3px)';
 
                 cell.appendChild(bond1);
                 cell.appendChild(bond2);
             } else if (count >= 3) {
-                for (let offset of [-5, -1, 3]) {
+                for (let offset of [-6, -1, 4]) {
                     const bond = document.createElement('div');
                     bond.className = 'bond-v';
                     bond.style.height = '100%';
-                    bond.style.top = '50%';
+                    bond.style.top = `50%`;
                     bond.style.left = `calc(50% + ${offset}px)`;
                     cell.appendChild(bond);
                 }
             }
         }
 
-        // プリセットデータの読み込み
         function loadPreset(type) {
             clearGrid();
             const mid = Math.floor(GRID_SIZE / 2);
 
             if (type === 'H2O') {
-                // 水分子 (H - O - H)
                 gridData[mid][mid] = { symbol: 'O', top: 2, bottom: 2, left: 1, right: 1 };
                 gridData[mid][mid - 1] = { symbol: 'H', top: 0, bottom: 0, left: 0, right: 1 };
                 gridData[mid][mid + 1] = { symbol: 'H', top: 0, bottom: 0, left: 1, right: 0 };
             } else if (type === 'CO2') {
-                // 二酸化炭素 (O = C = O)
                 gridData[mid][mid] = { symbol: 'C', top: 0, bottom: 0, left: 2, right: 2 };
                 gridData[mid][mid - 1] = { symbol: 'O', top: 2, bottom: 2, left: 0, right: 2 };
                 gridData[mid][mid + 1] = { symbol: 'O', top: 2, bottom: 2, left: 2, right: 0 };
             } else if (type === 'CH4') {
-                // メタン (CH4)
                 gridData[mid][mid] = { symbol: 'C', top: 1, bottom: 1, left: 1, right: 1 };
                 gridData[mid - 1][mid] = { symbol: 'H', top: 0, bottom: 1, left: 0, right: 0 };
                 gridData[mid + 1][mid] = { symbol: 'H', top: 1, bottom: 0, left: 0, right: 0 };
@@ -605,6 +597,76 @@
             }
 
             render();
+        }
+
+        // --- 画像ダウンロード＆自動クロップ（トリミング）機能 ---
+        async function downloadImage() {
+            // 元素が描画されているマス（バウンディングボックス）の最小・最大インデックスを取得
+            let minR = GRID_SIZE, maxR = -1;
+            let minC = GRID_SIZE, maxC = -1;
+
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    if (gridData[r][c].symbol !== '') {
+                        if (r < minR) minR = r;
+                        if (r > maxR) maxR = r;
+                        if (c < minC) minC = c;
+                        if (c > maxC) maxC = c;
+                    }
+                }
+            }
+
+            // 何も入力されていない場合
+            if (maxR === -1) {
+                alert('画像として保存する元素が配置されていません。');
+                return;
+            }
+
+            const gridElement = document.getElementById('lewis-grid');
+
+            // html2canvasでグリッド全体をレンダリング
+            const canvas = await html2canvas(gridElement, {
+                backgroundColor: '#ffffff',
+                scale: 2 // 高解像度出力
+            });
+
+            // 1セルあたりのピクセルサイズ（キャンバススケール考慮）
+            const cellPxWidth = canvas.width / GRID_SIZE;
+            const cellPxHeight = canvas.height / GRID_SIZE;
+
+            // クロップ範囲の計算（文字・周りのドットを切らないよう1マスのパディングを追加）
+            const paddingCells = 0.8; // 周囲のパディング幅（セル単位）
+            
+            const cropLeft = Math.max(0, (minC - paddingCells) * cellPxWidth);
+            const cropTop = Math.max(0, (minR - paddingCells) * cellPxHeight);
+            const cropRight = Math.min(canvas.width, (maxC + 1 + paddingCells) * cellPxWidth);
+            const cropBottom = Math.min(canvas.height, (maxR + 1 + paddingCells) * cellPxHeight);
+
+            const cropWidth = cropRight - cropLeft;
+            const cropHeight = cropBottom - cropTop;
+
+            // クロップ用のCanvasを作成
+            const croppedCanvas = document.createElement('canvas');
+            croppedCanvas.width = cropWidth;
+            croppedCanvas.height = cropHeight;
+            const ctx = croppedCanvas.getContext('2d');
+
+            // 背景を白で塗りつぶし
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, cropWidth, cropHeight);
+
+            // 該当部分のみ切り抜いてコピー
+            ctx.drawImage(
+                canvas,
+                cropLeft, cropTop, cropWidth, cropHeight,
+                0, 0, cropWidth, cropHeight
+            );
+
+            // PNGとしてダウンロード発火
+            const link = document.createElement('a');
+            link.download = 'lewis_structure.png';
+            link.href = croppedCanvas.toDataURL('image/png');
+            link.click();
         }
     </script>
 </body>
