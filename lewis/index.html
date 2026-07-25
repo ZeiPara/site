@@ -64,12 +64,17 @@
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.4); display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
-        .modal { background: white; padding: 24px; border-radius: 12px; width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+        .modal { background: white; padding: 24px; border-radius: 12px; width: 360px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
         .modal-title { font-size: 1.2rem; margin-bottom: 16px; text-align: center; }
         .form-group { margin-bottom: 14px; }
         .form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
         .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; }
         .electron-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .color-group { border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-top: 12px; }
+        .color-item { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+        .color-item:last-child { margin-bottom: 0; }
+        .color-item label { margin: 0; flex: 1; font-weight: 500; color: var(--text-main); }
+        .color-item input[type="color"] { width: 50px; height: 32px; cursor: pointer; border: 1px solid var(--border-color); border-radius: 4px; }
         .modal-actions { display: flex; gap: 8px; margin-top: 20px; }
         .modal-actions .btn { flex: 1; }
     </style>
@@ -78,7 +83,7 @@
 
     <header>
         <h1>21×21 ルイス構造式ジェネレーター</h1>
-        <p class="description">マス目をタップして編集できます。画像保存時は自動で必要な部分のみ切り取られます。</p>
+        <p class="description">マス目をタップして編集できます。各セルで文字・点の色をカスタマイズできます。</p>
     </header>
 
     <div class="controls">
@@ -88,13 +93,6 @@
             <button class="btn" onclick="loadPreset('CH4')">メタン (CH₄)</button>
         </div>
         <div class="controls-row">
-            <div class="color-controls">
-                <label class="color-label">
-                    <span>文字・点の色:</span>
-                    <input type="color" id="color-picker" value="#000000" style="width: 40px; height: 32px; cursor: pointer;">
-                    <span class="color-swatch" id="color-swatch" style="background-color: #000000;"></span>
-                </label>
-            </div>
             <button class="btn btn-success" onclick="downloadImage()">📷 画像として保存</button>
             <button class="btn btn-danger" onclick="clearGrid()">クリア</button>
         </div>
@@ -117,6 +115,31 @@
                 <div class="form-group"><label>左側の電子</label><select id="e-left"><option value="0">0</option><option value="1">1</option><option value="2">2</option></select></div>
                 <div class="form-group"><label>右側の電子</label><select id="e-right"><option value="0">0</option><option value="1">1</option><option value="2">2</option></select></div>
             </div>
+            
+            <div class="color-group">
+                <div style="font-weight: 600; color: var(--text-main); margin-bottom: 10px;">色設定</div>
+                <div class="color-item">
+                    <label for="color-symbol">文字の色</label>
+                    <input type="color" id="color-symbol" value="#000000">
+                </div>
+                <div class="color-item">
+                    <label for="color-top">上の点</label>
+                    <input type="color" id="color-top" value="#000000">
+                </div>
+                <div class="color-item">
+                    <label for="color-bottom">下の点</label>
+                    <input type="color" id="color-bottom" value="#000000">
+                </div>
+                <div class="color-item">
+                    <label for="color-left">左の点</label>
+                    <input type="color" id="color-left" value="#000000">
+                </div>
+                <div class="color-item">
+                    <label for="color-right">右の点</label>
+                    <input type="color" id="color-right" value="#000000">
+                </div>
+            </div>
+            
             <div class="modal-actions">
                 <button class="btn btn-danger" onclick="clearCurrentCell()">削除</button>
                 <button class="btn" onclick="closeModal()">キャンセル</button>
@@ -127,17 +150,20 @@
 
     <script>
         const GRID_SIZE = 21;
-        let gridData = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null).map(() => ({ symbol: '', top: 0, right: 0, bottom: 0, left: 0 })));
+        let gridData = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null).map(() => ({ 
+            symbol: '', 
+            top: 0, right: 0, bottom: 0, left: 0,
+            colorSymbol: '#000000',
+            colorTop: '#000000',
+            colorBottom: '#000000',
+            colorLeft: '#000000',
+            colorRight: '#000000'
+        })));
         let selectedRow = -1, selectedCol = -1;
-        let elementColor = '#000000';
 
         document.addEventListener('DOMContentLoaded', () => { 
             createGridUI(); 
             loadPreset('H2O');
-            document.getElementById('color-picker').addEventListener('change', (e) => {
-                elementColor = e.target.value;
-                document.getElementById('color-swatch').style.backgroundColor = elementColor;
-            });
         });
 
         function createGridUI() {
@@ -163,6 +189,11 @@
             document.getElementById('e-bottom').value = data.bottom;
             document.getElementById('e-left').value = data.left;
             document.getElementById('e-right').value = data.right;
+            document.getElementById('color-symbol').value = data.colorSymbol;
+            document.getElementById('color-top').value = data.colorTop;
+            document.getElementById('color-bottom').value = data.colorBottom;
+            document.getElementById('color-left').value = data.colorLeft;
+            document.getElementById('color-right').value = data.colorRight;
             document.getElementById('input-modal').classList.add('active');
         }
 
@@ -175,20 +206,39 @@
                 top: parseInt(document.getElementById('e-top').value, 10),
                 bottom: parseInt(document.getElementById('e-bottom').value, 10),
                 left: parseInt(document.getElementById('e-left').value, 10),
-                right: parseInt(document.getElementById('e-right').value, 10)
+                right: parseInt(document.getElementById('e-right').value, 10),
+                colorSymbol: document.getElementById('color-symbol').value,
+                colorTop: document.getElementById('color-top').value,
+                colorBottom: document.getElementById('color-bottom').value,
+                colorLeft: document.getElementById('color-left').value,
+                colorRight: document.getElementById('color-right').value
             };
             closeModal(); render();
         }
 
         function clearCurrentCell() {
             if (selectedRow === -1 || selectedCol === -1) return;
-            gridData[selectedRow][selectedCol] = { symbol: '', top: 0, bottom: 0, left: 0, right: 0 };
+            gridData[selectedRow][selectedCol] = { 
+                symbol: '', top: 0, bottom: 0, left: 0, right: 0,
+                colorSymbol: '#000000',
+                colorTop: '#000000',
+                colorBottom: '#000000',
+                colorLeft: '#000000',
+                colorRight: '#000000'
+            };
             closeModal(); render();
         }
 
         function clearGrid() {
             for (let r = 0; r < GRID_SIZE; r++) {
-                for (let c = 0; c < GRID_SIZE; c++) gridData[r][c] = { symbol: '', top: 0, bottom: 0, left: 0, right: 0 };
+                for (let c = 0; c < GRID_SIZE; c++) gridData[r][c] = { 
+                    symbol: '', top: 0, bottom: 0, left: 0, right: 0,
+                    colorSymbol: '#000000',
+                    colorTop: '#000000',
+                    colorBottom: '#000000',
+                    colorLeft: '#000000',
+                    colorRight: '#000000'
+                };
             }
             render();
         }
@@ -205,7 +255,7 @@
                 const symbolEl = document.createElement('span');
                 symbolEl.className = 'element-symbol';
                 symbolEl.innerText = data.symbol;
-                symbolEl.style.color = elementColor;
+                symbolEl.style.color = data.colorSymbol;
                 cell.appendChild(symbolEl);
 
                 const rightN = (c + 1 < GRID_SIZE) ? gridData[r][c + 1] : null;
@@ -217,28 +267,28 @@
                 const topN = (r - 1 >= 0) ? gridData[r - 1][c] : null;
                 const topB = (topN && topN.symbol) ? Math.min(data.top, topN.bottom) : 0;
 
-                renderDots(cell, data.top - topB, 'top');
-                renderDots(cell, data.bottom - bottomB, 'bottom');
-                renderDots(cell, data.left - leftB, 'left');
-                renderDots(cell, data.right - rightB, 'right');
+                renderDots(cell, data.top - topB, 'top', data.colorTop);
+                renderDots(cell, data.bottom - bottomB, 'bottom', data.colorBottom);
+                renderDots(cell, data.left - leftB, 'left', data.colorLeft);
+                renderDots(cell, data.right - rightB, 'right', data.colorRight);
 
                 if (rightB > 0) drawHorizontalBond(cell, rightB);
                 if (bottomB > 0) drawVerticalBond(cell, bottomB);
             });
         }
 
-        function renderDots(container, count, position) {
+        function renderDots(container, count, position, color) {
             if (count <= 0) return;
             if (count === 1) {
                 const dot = document.createElement('div');
                 dot.className = `dot dot-${position}-1`;
-                dot.style.backgroundColor = elementColor;
+                dot.style.backgroundColor = color;
                 container.appendChild(dot);
             } else if (count >= 2) {
                 const dot1 = document.createElement('div'); dot1.className = `dot dot-${position}-2a`;
                 const dot2 = document.createElement('div'); dot2.className = `dot dot-${position}-2b`;
-                dot1.style.backgroundColor = elementColor;
-                dot2.style.backgroundColor = elementColor;
+                dot1.style.backgroundColor = color;
+                dot2.style.backgroundColor = color;
                 container.appendChild(dot1); container.appendChild(dot2);
             }
         }
@@ -267,19 +317,19 @@
             clearGrid();
             const mid = Math.floor(GRID_SIZE / 2);
             if (type === 'H2O') {
-                gridData[mid][mid] = { symbol: 'O', top: 2, bottom: 2, left: 1, right: 1 };
-                gridData[mid][mid - 1] = { symbol: 'H', top: 0, bottom: 0, left: 0, right: 1 };
-                gridData[mid][mid + 1] = { symbol: 'H', top: 0, bottom: 0, left: 1, right: 0 };
+                gridData[mid][mid] = { symbol: 'O', top: 2, bottom: 2, left: 1, right: 1, colorSymbol: '#000000', colorTop: '#000000', colorBottom: '#000000', colorLeft: '#000000', colorRight: '#000000' };
+                gridData[mid][mid - 1] = { symbol: 'H', top: 0, bottom: 0, left: 0, right: 1, colorSymbol: '#000000', colorTop: '#000000', colorBottom: '#000000', colorLeft: '#000000', colorRight: '#000000' };
+                gridData[mid][mid + 1] = { symbol: 'H', top: 0, bottom: 0, left: 1, right: 0, colorSymbol: '#000000', colorTop: '#000000', colorBottom: '#000000', colorLeft: '#000000', colorRight: '#000000' };
             } else if (type === 'CO2') {
-                gridData[mid][mid] = { symbol: 'C', top: 0, bottom: 0, left: 2, right: 2 };
-                gridData[mid][mid - 1] = { symbol: 'O', top: 2, bottom: 2, left: 0, right: 2 };
-                gridData[mid][mid + 1] = { symbol: 'O', top: 2, bottom: 2, left: 2, right: 0 };
+                gridData[mid][mid] = { symbol: 'C', top: 0, bottom: 0, left: 2, right: 2, colorSymbol: '#000000', colorTop: '#000000', colorBottom: '#000000', colorLeft: '#000000', colorRight: '#000000' };
+                gridData[mid][mid - 1] = { symbol: 'O', top: 2, bottom: 2, left: 0, right: 2, colorSymbol: '#000000', colorTop: '#000000', colorBottom: '#000000', colorLeft: '#000000', colorRight: '#000000' };
+                gridData[mid][mid + 1] = { symbol: 'O', top: 2, bottom: 2, left: 2, right: 0, colorSymbol: '#000000', colorTop: '#000000', colorBottom: '#000000', colorLeft: '#000000', colorRight: '#000000' };
             } else if (type === 'CH4') {
-                gridData[mid][mid] = { symbol: 'C', top: 1, bottom: 1, left: 1, right: 1 };
-                gridData[mid - 1][mid] = { symbol: 'H', top: 0, bottom: 1, left: 0, right: 0 };
-                gridData[mid + 1][mid] = { symbol: 'H', top: 1, bottom: 0, left: 0, right: 0 };
-                gridData[mid][mid - 1] = { symbol: 'H', top: 0, bottom: 0, left: 0, right: 1 };
-                gridData[mid][mid + 1] = { symbol: 'H', top: 0, bottom: 0, left: 1, right: 0 };
+                gridData[mid][mid] = { symbol: 'C', top: 1, bottom: 1, left: 1, right: 1, colorSymbol: '#000000', colorTop: '#000000', colorBottom: '#000000', colorLeft: '#000000', colorRight: '#000000' };
+                gridData[mid - 1][mid] = { symbol: 'H', top: 0, bottom: 1, left: 0, right: 0, colorSymbol: '#000000', colorTop: '#000000', colorBottom: '#000000', colorLeft: '#000000', colorRight: '#000000' };
+                gridData[mid + 1][mid] = { symbol: 'H', top: 1, bottom: 0, left: 0, right: 0, colorSymbol: '#000000', colorTop: '#000000', colorBottom: '#000000', colorLeft: '#000000', colorRight: '#000000' };
+                gridData[mid][mid - 1] = { symbol: 'H', top: 0, bottom: 0, left: 0, right: 1, colorSymbol: '#000000', colorTop: '#000000', colorBottom: '#000000', colorLeft: '#000000', colorRight: '#000000' };
+                gridData[mid][mid + 1] = { symbol: 'H', top: 0, bottom: 0, left: 1, right: 0, colorSymbol: '#000000', colorTop: '#000000', colorBottom: '#000000', colorLeft: '#000000', colorRight: '#000000' };
             }
             render();
         }
@@ -320,9 +370,6 @@
             const getX = (c) => (c - startCol) * cellSize;
             const getY = (r) => (r - startRow) * cellSize;
 
-            // 線の色を取得（黒または選択色の濃い版）
-            const lineColor = elementColor === '#000000' ? '#000000' : elementColor;
-
             // 2. 結合線の描画（背景の上、点の下）
             for (let r = 0; r < GRID_SIZE; r++) {
                 for (let c = 0; c < GRID_SIZE; c++) {
@@ -334,8 +381,8 @@
                         const bondCount = Math.min(data.right, rightN.left);
                         if (bondCount > 0) {
                             const x1 = getX(c) + cellSize / 2, x2 = getX(c + 1) + cellSize / 2, y = getY(r) + cellSize / 2;
-                            ctx.strokeStyle = lineColor;
-                            ctx.lineWidth = 5; // 高解像度で太く
+                            ctx.strokeStyle = '#1e293b';
+                            ctx.lineWidth = 5;
                             const offsets = bondCount === 1 ? [0] : bondCount === 2 ? [-10, 10] : [-16, 0, 16];
                             offsets.forEach(off => { ctx.beginPath(); ctx.moveTo(x1, y + off); ctx.lineTo(x2, y + off); ctx.stroke(); });
                         }
@@ -346,7 +393,7 @@
                         const bondCount = Math.min(data.bottom, bottomN.top);
                         if (bondCount > 0) {
                             const x = getX(c) + cellSize / 2, y1 = getY(r) + cellSize / 2, y2 = getY(r + 1) + cellSize / 2;
-                            ctx.strokeStyle = lineColor;
+                            ctx.strokeStyle = '#1e293b';
                             ctx.lineWidth = 5;
                             const offsets = bondCount === 1 ? [0] : bondCount === 2 ? [-10, 10] : [-16, 0, 16];
                             offsets.forEach(off => { ctx.beginPath(); ctx.moveTo(x + off, y1); ctx.lineTo(x + off, y2); ctx.stroke(); });
@@ -367,9 +414,9 @@
                     const bottomN = (r + 1 < GRID_SIZE) ? gridData[r + 1][c] : null;
                     const topN = (r - 1 >= 0) ? gridData[r - 1][c] : null;
 
-                    const drawDots = (count, pos) => {
+                    const drawDots = (count, pos, color) => {
                         if (count <= 0) return;
-                        ctx.fillStyle = elementColor;
+                        ctx.fillStyle = color;
                         const offset = cellSize * 0.42;
                         let coords = [];
                         if (pos === 'top') coords = count === 1 ? [[cx, cy - offset]] : [[cx - 12, cy - offset], [cx + 12, cy - offset]];
@@ -379,10 +426,10 @@
                         coords.forEach(([dx, dy]) => { ctx.beginPath(); ctx.arc(dx, dy, 6, 0, Math.PI * 2); ctx.fill(); });
                     };
 
-                    drawDots(data.top - ((topN && topN.symbol) ? Math.min(data.top, topN.bottom) : 0), 'top');
-                    drawDots(data.bottom - ((bottomN && bottomN.symbol) ? Math.min(data.bottom, bottomN.top) : 0), 'bottom');
-                    drawDots(data.left - ((leftN && leftN.symbol) ? Math.min(data.left, leftN.right) : 0), 'left');
-                    drawDots(data.right - ((rightN && rightN.symbol) ? Math.min(data.right, rightN.left) : 0), 'right');
+                    drawDots(data.top - ((topN && topN.symbol) ? Math.min(data.top, topN.bottom) : 0), 'top', data.colorTop);
+                    drawDots(data.bottom - ((bottomN && bottomN.symbol) ? Math.min(data.bottom, bottomN.top) : 0), 'bottom', data.colorBottom);
+                    drawDots(data.left - ((leftN && leftN.symbol) ? Math.min(data.left, leftN.right) : 0), 'left', data.colorLeft);
+                    drawDots(data.right - ((rightN && rightN.symbol) ? Math.min(data.right, rightN.left) : 0), 'right', data.colorRight);
                 }
             }
 
@@ -405,7 +452,7 @@
                     ctx.fillRect(cx - (textMetrics.width + padding) / 2, cy - 40, textMetrics.width + padding, 80);
                     
                     // テキスト
-                    ctx.fillStyle = elementColor;
+                    ctx.fillStyle = data.colorSymbol;
                     ctx.fillText(data.symbol, cx, cy);
                 }
             }
