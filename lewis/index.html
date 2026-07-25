@@ -33,6 +33,12 @@
         .btn-success:hover { background-color: var(--success-hover); }
         .btn-danger { color: #ef4444; border-color: #fca5a5; }
 
+        .controls-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; align-items: center; }
+        .color-controls { display: flex; gap: 8px; align-items: center; }
+        .color-controls label { margin: 0; }
+        .color-label { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; }
+        .color-swatch { width: 24px; height: 24px; border-radius: 4px; border: 2px solid var(--border-color); }
+
         .grid-container { background: var(--panel-bg); border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); padding: 20px; overflow: auto; max-width: 100%; }
         #lewis-grid { display: grid; grid-template-columns: repeat(21, var(--cell-size)); grid-template-rows: repeat(21, var(--cell-size)); gap: 0; user-select: none; }
         .cell { width: var(--cell-size); height: var(--cell-size); position: relative; cursor: pointer; border: 1px solid transparent; display: flex; align-items: center; justify-content: center; }
@@ -76,11 +82,22 @@
     </header>
 
     <div class="controls">
-        <button class="btn" onclick="loadPreset('H2O')">水 (H₂O)</button>
-        <button class="btn" onclick="loadPreset('CO2')">二酸化炭素 (CO₂)</button>
-        <button class="btn" onclick="loadPreset('CH4')">メタン (CH₄)</button>
-        <button class="btn btn-success" onclick="downloadImage()">📷 画像として保存</button>
-        <button class="btn btn-danger" onclick="clearGrid()">クリア</button>
+        <div class="controls-row">
+            <button class="btn" onclick="loadPreset('H2O')">水 (H₂O)</button>
+            <button class="btn" onclick="loadPreset('CO2')">二酸化炭素 (CO₂)</button>
+            <button class="btn" onclick="loadPreset('CH4')">メタン (CH₄)</button>
+        </div>
+        <div class="controls-row">
+            <div class="color-controls">
+                <label class="color-label">
+                    <span>文字・点の色:</span>
+                    <input type="color" id="color-picker" value="#000000" style="width: 40px; height: 32px; cursor: pointer;">
+                    <span class="color-swatch" id="color-swatch" style="background-color: #000000;"></span>
+                </label>
+            </div>
+            <button class="btn btn-success" onclick="downloadImage()">📷 画像として保存</button>
+            <button class="btn btn-danger" onclick="clearGrid()">クリア</button>
+        </div>
     </div>
 
     <div class="grid-container">
@@ -112,8 +129,16 @@
         const GRID_SIZE = 21;
         let gridData = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null).map(() => ({ symbol: '', top: 0, right: 0, bottom: 0, left: 0 })));
         let selectedRow = -1, selectedCol = -1;
+        let elementColor = '#000000';
 
-        document.addEventListener('DOMContentLoaded', () => { createGridUI(); loadPreset('H2O'); });
+        document.addEventListener('DOMContentLoaded', () => { 
+            createGridUI(); 
+            loadPreset('H2O');
+            document.getElementById('color-picker').addEventListener('change', (e) => {
+                elementColor = e.target.value;
+                document.getElementById('color-swatch').style.backgroundColor = elementColor;
+            });
+        });
 
         function createGridUI() {
             const gridContainer = document.getElementById('lewis-grid');
@@ -180,6 +205,7 @@
                 const symbolEl = document.createElement('span');
                 symbolEl.className = 'element-symbol';
                 symbolEl.innerText = data.symbol;
+                symbolEl.style.color = elementColor;
                 cell.appendChild(symbolEl);
 
                 const rightN = (c + 1 < GRID_SIZE) ? gridData[r][c + 1] : null;
@@ -206,10 +232,13 @@
             if (count === 1) {
                 const dot = document.createElement('div');
                 dot.className = `dot dot-${position}-1`;
+                dot.style.backgroundColor = elementColor;
                 container.appendChild(dot);
             } else if (count >= 2) {
                 const dot1 = document.createElement('div'); dot1.className = `dot dot-${position}-2a`;
                 const dot2 = document.createElement('div'); dot2.className = `dot dot-${position}-2b`;
+                dot1.style.backgroundColor = elementColor;
+                dot2.style.backgroundColor = elementColor;
                 container.appendChild(dot1); container.appendChild(dot2);
             }
         }
@@ -275,14 +304,14 @@
             const endCol = Math.min(GRID_SIZE, maxC + 1 + padding);
             const endRow = Math.min(GRID_SIZE, maxR + 1 + padding);
 
-            const cellSize = 60;
+            const cellSize = 120; // 高解像度化（2倍）
             const width = (endCol - startCol) * cellSize;
             const height = (endRow - startRow) * cellSize;
 
             const canvas = document.createElement('canvas');
             canvas.width = width;
             canvas.height = height;
-            const ctx = canvas.getContext('2d');
+            const ctx = canvas.getContext('2d', { alpha: false });
 
             // 1. 白背景を描画
             ctx.fillStyle = '#ffffff';
@@ -290,6 +319,9 @@
 
             const getX = (c) => (c - startCol) * cellSize;
             const getY = (r) => (r - startRow) * cellSize;
+
+            // 線の色を取得（黒または選択色の濃い版）
+            const lineColor = elementColor === '#000000' ? '#000000' : elementColor;
 
             // 2. 結合線の描画（背景の上、点の下）
             for (let r = 0; r < GRID_SIZE; r++) {
@@ -302,9 +334,9 @@
                         const bondCount = Math.min(data.right, rightN.left);
                         if (bondCount > 0) {
                             const x1 = getX(c) + cellSize / 2, x2 = getX(c + 1) + cellSize / 2, y = getY(r) + cellSize / 2;
-                            ctx.strokeStyle = '#1e293b';
-                            ctx.lineWidth = 2.5;
-                            const offsets = bondCount === 1 ? [0] : bondCount === 2 ? [-5, 5] : [-8, 0, 8];
+                            ctx.strokeStyle = lineColor;
+                            ctx.lineWidth = 5; // 高解像度で太く
+                            const offsets = bondCount === 1 ? [0] : bondCount === 2 ? [-10, 10] : [-16, 0, 16];
                             offsets.forEach(off => { ctx.beginPath(); ctx.moveTo(x1, y + off); ctx.lineTo(x2, y + off); ctx.stroke(); });
                         }
                     }
@@ -314,9 +346,9 @@
                         const bondCount = Math.min(data.bottom, bottomN.top);
                         if (bondCount > 0) {
                             const x = getX(c) + cellSize / 2, y1 = getY(r) + cellSize / 2, y2 = getY(r + 1) + cellSize / 2;
-                            ctx.strokeStyle = '#1e293b';
-                            ctx.lineWidth = 2.5;
-                            const offsets = bondCount === 1 ? [0] : bondCount === 2 ? [-5, 5] : [-8, 0, 8];
+                            ctx.strokeStyle = lineColor;
+                            ctx.lineWidth = 5;
+                            const offsets = bondCount === 1 ? [0] : bondCount === 2 ? [-10, 10] : [-16, 0, 16];
                             offsets.forEach(off => { ctx.beginPath(); ctx.moveTo(x + off, y1); ctx.lineTo(x + off, y2); ctx.stroke(); });
                         }
                     }
@@ -337,14 +369,14 @@
 
                     const drawDots = (count, pos) => {
                         if (count <= 0) return;
-                        ctx.fillStyle = '#000000';
+                        ctx.fillStyle = elementColor;
                         const offset = cellSize * 0.42;
                         let coords = [];
-                        if (pos === 'top') coords = count === 1 ? [[cx, cy - offset]] : [[cx - 6, cy - offset], [cx + 6, cy - offset]];
-                        if (pos === 'bottom') coords = count === 1 ? [[cx, cy + offset]] : [[cx - 6, cy + offset], [cx + 6, cy + offset]];
-                        if (pos === 'left') coords = count === 1 ? [[cx - offset, cy]] : [[cx - offset, cy - 6], [cx - offset, cy + 6]];
-                        if (pos === 'right') coords = count === 1 ? [[cx + offset, cy]] : [[cx + offset, cy - 6], [cx + offset, cy + 6]];
-                        coords.forEach(([dx, dy]) => { ctx.beginPath(); ctx.arc(dx, dy, 3, 0, Math.PI * 2); ctx.fill(); });
+                        if (pos === 'top') coords = count === 1 ? [[cx, cy - offset]] : [[cx - 12, cy - offset], [cx + 12, cy - offset]];
+                        if (pos === 'bottom') coords = count === 1 ? [[cx, cy + offset]] : [[cx - 12, cy + offset], [cx + 12, cy + offset]];
+                        if (pos === 'left') coords = count === 1 ? [[cx - offset, cy]] : [[cx - offset, cy - 12], [cx - offset, cy + 12]];
+                        if (pos === 'right') coords = count === 1 ? [[cx + offset, cy]] : [[cx + offset, cy - 12], [cx + offset, cy + 12]];
+                        coords.forEach(([dx, dy]) => { ctx.beginPath(); ctx.arc(dx, dy, 6, 0, Math.PI * 2); ctx.fill(); });
                     };
 
                     drawDots(data.top - ((topN && topN.symbol) ? Math.min(data.top, topN.bottom) : 0), 'top');
@@ -362,18 +394,18 @@
 
                     const cx = getX(c) + cellSize / 2, cy = getY(r) + cellSize / 2;
 
-                    ctx.font = 'bold 32px sans-serif';
+                    ctx.font = 'bold 64px sans-serif';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     const textMetrics = ctx.measureText(data.symbol);
-                    const padding = 16;
+                    const padding = 32;
                     
                     // 白い背景（不透明）
                     ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(cx - (textMetrics.width + padding) / 2, cy - 20, textMetrics.width + padding, 40);
+                    ctx.fillRect(cx - (textMetrics.width + padding) / 2, cy - 40, textMetrics.width + padding, 80);
                     
                     // テキスト
-                    ctx.fillStyle = '#1e293b';
+                    ctx.fillStyle = elementColor;
                     ctx.fillText(data.symbol, cx, cy);
                 }
             }
