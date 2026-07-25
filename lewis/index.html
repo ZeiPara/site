@@ -38,7 +38,7 @@
         .cell { width: var(--cell-size); height: var(--cell-size); position: relative; cursor: pointer; border: 1px solid transparent; display: flex; align-items: center; justify-content: center; }
         .cell:hover { background-color: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.2); }
 
-        .element-symbol { font-size: 1.1rem; font-weight: bold; z-index: 5; pointer-events: none; background-color: rgba(255, 255, 255, 0.7); padding: 1px 4px; border-radius: 2px; color: #1e293b; }
+        .element-symbol { font-size: 1.1rem; font-weight: bold; z-index: 5; pointer-events: none; background-color: #ffffff; padding: 1px 4px; border-radius: 2px; color: #1e293b; }
         .dot { position: absolute; width: 4px; height: 4px; background-color: #000; border-radius: 50%; z-index: 3; pointer-events: none; }
         .dot-top-1 { top: 2px; left: 50%; transform: translateX(-50%); }
         .dot-top-2a { top: 2px; left: 35%; transform: translateX(-50%); }
@@ -255,7 +255,7 @@
             render();
         }
 
-        // --- Canvas直描画方式による確実な画像保存 (iPhone対応) ---
+        // --- Canvas直描画方式による確実な画像保存 ---
         function downloadImage() {
             let minR = GRID_SIZE, maxR = -1, minC = GRID_SIZE, maxC = -1;
             for (let r = 0; r < GRID_SIZE; r++) {
@@ -282,16 +282,16 @@
             const canvas = document.createElement('canvas');
             canvas.width = width;
             canvas.height = height;
-            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            const ctx = canvas.getContext('2d');
 
-            // 白背景
+            // 1. 白背景を描画
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, width, height);
 
             const getX = (c) => (c - startCol) * cellSize;
             const getY = (r) => (r - startRow) * cellSize;
 
-            // 1. 結合線の描画
+            // 2. 結合線の描画（背景の上、点の下）
             for (let r = 0; r < GRID_SIZE; r++) {
                 for (let c = 0; c < GRID_SIZE; c++) {
                     const data = gridData[r][c];
@@ -323,7 +323,7 @@
                 }
             }
 
-            // 2. 電子とテキストの描画
+            // 3. 電子（ドット）の描画
             for (let r = 0; r < GRID_SIZE; r++) {
                 for (let c = 0; c < GRID_SIZE; c++) {
                     const data = gridData[r][c];
@@ -351,8 +351,17 @@
                     drawDots(data.bottom - ((bottomN && bottomN.symbol) ? Math.min(data.bottom, bottomN.top) : 0), 'bottom');
                     drawDots(data.left - ((leftN && leftN.symbol) ? Math.min(data.left, leftN.right) : 0), 'left');
                     drawDots(data.right - ((rightN && rightN.symbol) ? Math.min(data.right, rightN.left) : 0), 'right');
+                }
+            }
 
-                    // テキスト背景を不透明に＆より大きく
+            // 4. テキスト（元素記号）の描画
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    const data = gridData[r][c];
+                    if (!data.symbol) continue;
+
+                    const cx = getX(c) + cellSize / 2, cy = getY(r) + cellSize / 2;
+
                     ctx.font = 'bold 32px sans-serif';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
@@ -369,33 +378,12 @@
                 }
             }
 
-            // iPhone対応：Blob URLを使用して画像を表示・保存
-            canvas.toBlob((blob) => {
-                if (!blob) {
-                    alert('画像の生成に失敗しました');
-                    return;
-                }
-                
-                const blobUrl = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                
-                // iPhone/iPad: プレビュー表示（_blank）
-                if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
-                    link.href = blobUrl;
-                    link.target = '_blank';
-                } else {
-                    // その他のデバイス: ダウンロード
-                    link.href = blobUrl;
-                    link.download = 'lewis_structure.png';
-                }
-                
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                // クリーンアップ
-                setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-            }, 'image/png', 0.95);
+            // 画像をダウンロード
+            const dataUrl = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = 'lewis_structure.png';
+            link.click();
         }
     </script>
 </body>
