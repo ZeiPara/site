@@ -35,10 +35,10 @@
 
         .grid-container { background: var(--panel-bg); border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); padding: 20px; overflow: auto; max-width: 100%; }
         #lewis-grid { display: grid; grid-template-columns: repeat(21, var(--cell-size)); grid-template-rows: repeat(21, var(--cell-size)); gap: 0; user-select: none; }
-        .cell { width: var(--cell-size); height: var(--cell-size); position: relative; cursor: pointer; border: 1px solid transparent; display: flex; align-items: center; justify-content: center; border-radius: 4px; }
+        .cell { width: var(--cell-size); height: var(--cell-size); position: relative; cursor: pointer; border: 1px solid transparent; display: flex; align-items: center; justify-content: center; }
         .cell:hover { background-color: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.2); }
 
-        .element-symbol { font-size: 1.1rem; font-weight: bold; z-index: 5; pointer-events: none; background-color: #ffffff; padding: 1px 4px; border-radius: 2px; color: #1e293b; }
+        .element-symbol { font-size: 1.1rem; font-weight: bold; z-index: 5; pointer-events: none; background-color: rgba(255, 255, 255, 0.7); padding: 1px 4px; border-radius: 2px; color: #1e293b; }
         .dot { position: absolute; width: 4px; height: 4px; background-color: #000; border-radius: 50%; z-index: 3; pointer-events: none; }
         .dot-top-1 { top: 2px; left: 50%; transform: translateX(-50%); }
         .dot-top-2a { top: 2px; left: 35%; transform: translateX(-50%); }
@@ -56,7 +56,7 @@
         .bond-h { position: absolute; height: 2px; background-color: #1e293b; z-index: 1; pointer-events: none; }
         .bond-v { position: absolute; width: 2px; background-color: #1e293b; z-index: 1; pointer-events: none; }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.4); display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.4); display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
         .modal { background: white; padding: 24px; border-radius: 12px; width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
         .modal-title { font-size: 1.2rem; margin-bottom: 16px; text-align: center; }
@@ -255,7 +255,7 @@
             render();
         }
 
-        // --- 純粋Canvas直描画方式による確実な画像保存 ---
+        // --- Canvas直描画方式による確実な画像保存 (iPhone対応) ---
         function downloadImage() {
             let minR = GRID_SIZE, maxR = -1, minC = GRID_SIZE, maxC = -1;
             for (let r = 0; r < GRID_SIZE; r++) {
@@ -275,14 +275,16 @@
             const endCol = Math.min(GRID_SIZE, maxC + 1 + padding);
             const endRow = Math.min(GRID_SIZE, maxR + 1 + padding);
 
-            const cellSize = 60; // 綺麗に印刷/拡大できるよう高解像度化
+            const cellSize = 60;
             const width = (endCol - startCol) * cellSize;
             const height = (endRow - startRow) * cellSize;
 
             const canvas = document.createElement('canvas');
-            canvas.width = width; canvas.height = height;
-            const ctx = canvas.getContext('2d');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
+            // 白背景
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, width, height);
 
@@ -300,7 +302,8 @@
                         const bondCount = Math.min(data.right, rightN.left);
                         if (bondCount > 0) {
                             const x1 = getX(c) + cellSize / 2, x2 = getX(c + 1) + cellSize / 2, y = getY(r) + cellSize / 2;
-                            ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 2.5;
+                            ctx.strokeStyle = '#1e293b';
+                            ctx.lineWidth = 2.5;
                             const offsets = bondCount === 1 ? [0] : bondCount === 2 ? [-5, 5] : [-8, 0, 8];
                             offsets.forEach(off => { ctx.beginPath(); ctx.moveTo(x1, y + off); ctx.lineTo(x2, y + off); ctx.stroke(); });
                         }
@@ -311,7 +314,8 @@
                         const bondCount = Math.min(data.bottom, bottomN.top);
                         if (bondCount > 0) {
                             const x = getX(c) + cellSize / 2, y1 = getY(r) + cellSize / 2, y2 = getY(r + 1) + cellSize / 2;
-                            ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 2.5;
+                            ctx.strokeStyle = '#1e293b';
+                            ctx.lineWidth = 2.5;
                             const offsets = bondCount === 1 ? [0] : bondCount === 2 ? [-5, 5] : [-8, 0, 8];
                             offsets.forEach(off => { ctx.beginPath(); ctx.moveTo(x + off, y1); ctx.lineTo(x + off, y2); ctx.stroke(); });
                         }
@@ -348,20 +352,50 @@
                     drawDots(data.left - ((leftN && leftN.symbol) ? Math.min(data.left, leftN.right) : 0), 'left');
                     drawDots(data.right - ((rightN && rightN.symbol) ? Math.min(data.right, rightN.left) : 0), 'right');
 
-                    ctx.font = 'bold 26px sans-serif';
-                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    // テキスト背景を不透明に＆より大きく
+                    ctx.font = 'bold 32px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
                     const textMetrics = ctx.measureText(data.symbol);
+                    const padding = 16;
+                    
+                    // 白い背景（不透明）
                     ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(cx - (textMetrics.width + 12) / 2, cy - 15, textMetrics.width + 12, 30);
+                    ctx.fillRect(cx - (textMetrics.width + padding) / 2, cy - 20, textMetrics.width + padding, 40);
+                    
+                    // テキスト
                     ctx.fillStyle = '#1e293b';
                     ctx.fillText(data.symbol, cx, cy);
                 }
             }
 
-            const link = document.createElement('a');
-            link.download = 'lewis_structure.png';
-            link.href = canvas.toDataURL('image/png');
-            link.click();
+            // iPhone対応：Blob URLを使用して画像を表示・保存
+            canvas.toBlob((blob) => {
+                if (!blob) {
+                    alert('画像の生成に失敗しました');
+                    return;
+                }
+                
+                const blobUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                
+                // iPhone/iPad: プレビュー表示（_blank）
+                if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+                    link.href = blobUrl;
+                    link.target = '_blank';
+                } else {
+                    // その他のデバイス: ダウンロード
+                    link.href = blobUrl;
+                    link.download = 'lewis_structure.png';
+                }
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // クリーンアップ
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+            }, 'image/png', 0.95);
         }
     </script>
 </body>
