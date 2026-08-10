@@ -3,13 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歴史年表（縦書き）</title>
+    <title>歴史年表（縦書き・四角区切り）</title>
     <style>
         body {
             font-family: "Hiragino Mincho ProN", "Yu Mincho", "MS Mincho", serif;
-            background-color: #f4edd2; /* 古紙風の背景色 */
-            background-image: radial-gradient(rgba(0,0,0,0.03) 1px, transparent 0);
-            background-size: 24px 24px;
+            background-color: #f5f2e9; /* 古紙風の背景色 */
             color: #2b2b2b;
             margin: 0;
             padding: 40px;
@@ -19,58 +17,53 @@
             direction: rtl; 
         }
 
-        /* 年表全体のコンテナ（右から左へ並べる） */
-        .timeline-scroll {
+        /* 表全体のコンテナ（枠同士を右から左へ並べる） */
+        .timeline-table {
             display: flex;
             flex-direction: row;
+            gap: 20px; /* 四角い枠同士の間隔 */
             height: 80vh;
-            padding-right: 20px;
+            padding-right: 10px;
         }
 
-        /* 各イベントの塊（縦書き指定） */
-        .timeline-item {
+        /* 各イベントを区切る四角い枠 */
+        .timeline-card {
             writing-mode: vertical-rl; /* 縦書き・右から左 */
-            text-combine-upright: digits 4; /* 数字を縦に並べる設定 */
-            margin-left: 60px; /* イベント間の余白 */
-            position: relative;
-            height: 100%;
+            border: 2px solid #5d4037; /* 古風な茶色の細い枠線 */
+            background-color: #ffffff; /* 枠内の背景（白） */
+            padding: 25px 20px;
+            box-shadow: 3px 3px 0px rgba(93, 64, 55, 0.15); /* ほんのり和風の影 */
+            height: 90%;
+            box-sizing: border-box;
             display: flex;
             flex-direction: column;
         }
 
-        /* 各区切りの仕切り線 */
-        .timeline-item::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            left: -30px;
-            width: 1px;
-            border-left: 1px dashed #a1887f;
-        }
-
-        /* 年号 */
+        /* 年号セクション */
         .timeline-year {
-            font-size: 1.6rem;
+            font-size: 1.4rem;
             font-weight: bold;
-            color: #b71c1c; /* 暗い赤（朱色風） */
-            margin-bottom: 15px;
+            color: #b71c1c; /* 朱色 */
+            border-left: 1px solid #e0e0e0; /* 横書きでの下に相当する区切り線 */
+            padding-left: 10px;
+            margin-left: 10px;
             letter-spacing: 2px;
         }
 
-        /* 出来事の名称 */
+        /* 出来事の名称セクション */
         .timeline-title {
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             font-weight: bold;
-            margin-bottom: 20px;
-            border-right: 3px solid #b71c1c;
-            padding-right: 8px;
+            color: #1a1a1a;
+            border-left: 1px solid #e0e0e0;
+            padding-left: 10px;
+            margin-left: 15px;
         }
 
-        /* 次への流れの文章 */
+        /* 次への流れの文章セクション */
         .timeline-text {
-            font-size: 1rem;
-            line-height: 2.2; /* 縦書きで見やすい行間 */
+            font-size: 0.95rem;
+            line-height: 2.3; /* 縦書きで読みやすい行間 */
             color: #424242;
             text-align: justify;
         }
@@ -78,7 +71,7 @@
 </head>
 <body>
 
-    <div class="timeline-scroll" id="timeline"></div>
+    <div class="timeline-table" id="timeline"></div>
 
     <script>
         // 元のデータ配列
@@ -386,14 +379,13 @@
     { name: "日本が降伏", year: 1945.7, nextFlow: "降伏が決定した翌日、国民に向けて正式な放送が流れます。" },
     { name: "玉音放送", year: 1945.8, nextFlow: "これにより、日本は敗戦からの新しい民主化への歩みを始めることになりました。" }
 ];
-
-
+        
         // HTMLを生成する関数
         function createTimeline(data) {
             const container = document.getElementById('timeline');
             
             const htmlContent = data.map(item => `
-                <div class="timeline-item">
+                <div class="timeline-card">
                     <div class="timeline-year">${item.year}年</div>
                     <div class="timeline-title">${item.name}</div>
                     <div class="timeline-text">${item.nextFlow}</div>
