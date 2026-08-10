@@ -3,99 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歴史年表（年号横書き・四角区切り）</title>
+    <title>歴史年表</title>
     <style>
         body {
-            font-family: "Hiragino Mincho ProN", "Yu Mincho", "MS Mincho", serif;
-            background-color: #f5f2e9; /* 古紙風の背景色 */
-            color: #2b2b2b;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f7f9fa;
+            color: #333;
+            padding: 20px;
             margin: 0;
-            padding: 40px;
-            /* 画面全体を右から左への横スクロールにする */
-            overflow-y: hidden;
-            overflow-x: auto;
-            direction: rtl; 
         }
-
-        /* 表全体のコンテナ（枠同士を右から左へ並べる） */
-        .timeline-table {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            gap: 40px; /* 四角い枠同士の間隔 */
-            height: 85vh;
-            padding-right: 20px;
+        .timeline-container {
+            max-width: 800px;
+            margin: 0 auto;
             position: relative;
+            padding: 20px 0;
         }
-
-        /* 各出来事（四角）を横につなぐ背景の真ん中の線 */
-        .timeline-table::before {
+        /* 中央の縦線 */
+        .timeline-container::after {
             content: '';
             position: absolute;
-            right: 0;
-            left: 0;
-            top: 50%;
-            height: 2px;
-            background-color: #5d4037; /* つなぎの線（茶色） */
-            z-index: 1;
+            width: 4px;
+            background-color: #cbd5e1;
+            top: 0;
+            bottom: 0;
+            left: 50px;
+            margin-left: -2px;
         }
-
-        /* 各イベントを区切る四角い枠 */
-        .timeline-card {
-            writing-mode: vertical-rl; /* 縦書き・右から左 */
-            border: 2px solid #5d4037; /* 古風な茶色の細い枠線 */
-            background-color: #ffffff; /* 枠内の背景（白） */
-            padding: 25px 20px;
-            box-shadow: 4px 4px 0px rgba(93, 64, 55, 0.15);
-            height: 80%;
-            width: auto;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column; /* 縦書きの中で上から下（右から左）へ並べる */
-            z-index: 2; /* つなぎの線の上にカードを重ねる */
+        /* 各イベントの塊 */
+        .timeline-item {
+            padding: 10px 30px;
             position: relative;
+            background-color: inherit;
+            width: auto;
+            margin-left: 50px;
         }
-
-        /* 年号（ここだけ横書きにする設定） */
+        /* タイムラインの丸アイコン */
+        .timeline-item::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            right: 100%;
+            background-color: #fff;
+            border: 4px solid #3b82f6;
+            top: 15px;
+            border-radius: 50%;
+            z-index: 1;
+            margin-right: -10px;
+        }
+        /* コンテンツボックス */
+        .timeline-content {
+            padding: 20px;
+            background-color: #fff;
+            position: relative;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        /* 年号 */
         .timeline-year {
-            font-size: 1.5rem;
             font-weight: bold;
-            color: #b71c1c; /* 朱色 */
-            /* 縦書きの中で数字を通常の横書き（2桁ずつ直立）にする */
-            text-combine-upright: digits 3; 
-            margin-left: 20px; /* 縦書き時の「下（左側）」への余白 */
-            border-left: 2px solid #e0e0e0; /* 次の要素との区切り線 */
-            padding-left: 15px;
-            letter-spacing: 0px;
-            white-space: nowrap;
+            font-size: 1.2rem;
+            color: #3b82f6;
+            margin: 0 0 5px 0;
         }
-
         /* 出来事の名称 */
         .timeline-title {
-            font-size: 1.25rem;
+            font-size: 1.1rem;
+            margin: 0 0 10px 0;
             font-weight: bold;
-            color: #1a1a1a;
-            margin-left: 20px;
-            border-left: 2px solid #e0e0e0;
-            padding-left: 15px;
         }
-
-        /* 次への流れの説明文章 */
+        /* 次への流れの文章 */
         .timeline-text {
+            color: #64748b;
             font-size: 0.95rem;
-            line-height: 2.3; /* 縦書きで読みやすい行間 */
-            color: #424242;
-            text-align: justify;
-            flex-grow: 1;
+            line-height: 1.6;
+            margin: 0;
+            background-color: #f8fafc;
+            padding: 10px;
+            border-left: 3px solid #94a3b8;
         }
     </style>
 </head>
 <body>
 
-    <div class="timeline-table" id="timeline"></div>
+    <div class="timeline-container" id="timeline"></div>
 
     <script>
-        // 元のデータ配列
+        // 元のデータ配列（あえて順番をバラバラにしても自動で並び替わります）
         const historyData = [
     { name: "奴国（なこく）の王が漢に使いを送る", year: 57.0, nextFlow: "後漢の皇帝から金印「漢委奴国王」を授かり、日本（倭）の存在が中国の歴史書に刻まれるなか、中国大陸では長い混乱期を経て…" },
     { name: "中国で南北朝時代が始まる", year: 439.0, nextFlow: "中国大陸が南北に分裂し激しい勢力争いが続くなか、日本の有力な王（倭王）は、自らの地位を国際的に認めてもらうため…" },
@@ -405,14 +399,22 @@
         function createTimeline(data) {
             const container = document.getElementById('timeline');
             
-            const htmlContent = data.map(item => `
-                <div class="timeline-card">
-                    <div class="timeline-year">${item.year}年</div>
-                    <div class="timeline-title">${item.name}</div>
-                    <div class="timeline-text">${item.nextFlow}</div>
+            // 年代順（昇順・古い順）にデータを並び替える処理
+            // ※新しい順にしたい場合は 「b.year - a.year」 に変更してください
+            const sortedData = [...data].sort((a, b) => a.year - b.year);
+
+            // 並び替えた配列（sortedData）をループしてHTML文字列を組み立てる
+            const htmlContent = sortedData.map(item => `
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <p class="timeline-year">${item.year} 年</p>
+                        <h3 class="timeline-title">${item.name}</h3>
+                        <p class="timeline-text">${item.nextFlow}</p>
+                    </div>
                 </div>
             `).join('');
 
+            // コンテナに挿入
             container.innerHTML = htmlContent;
         }
 
