@@ -325,7 +325,7 @@ let postDict = ${postDictCode};`;
                     if (!sentence.trim()) continue;
 
                     const targetUrl = `https://www.google.com/transliterate?langpair=ja-Hira|ja&text=${encodeURIComponent(sentence)}`;
-                    const apiUrl = `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
+                    const apiUrl = `https://corsproxy.io/?key=25e4041a&url=${encodeURIComponent(targetUrl)}`;
 
                     const controller = new AbortController();
                     const timeoutId = setTimeout(() => controller.abort(), 5000);
