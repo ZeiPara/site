@@ -325,7 +325,7 @@ let postDict = ${postDictCode};`;
                     if (!sentence.trim()) continue;
 
                     const targetUrl = `https://www.google.com/transliterate?langpair=ja-Hira|ja&text=${encodeURIComponent(sentence)}`;
-                    const apiUrl = `https://withered-sun-99da.kito20111011.workers.dev/${encodeURIComponent(targetUrl)}`;
+                    const apiUrl = `https://withered-sun-99da.kito20111011.workers.dev/${targetUrl}`;
 
                     const controller = new AbortController();
                     const timeoutId = setTimeout(() => controller.abort(), 5000);
