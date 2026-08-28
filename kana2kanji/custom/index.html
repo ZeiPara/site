@@ -337,7 +337,7 @@ let postDict = ${postDictCode};`;
                         throw new Error(`HTTP_STATUS_${response.status}`);
                     }
 
-                    const data = await response.json();
+                    const data = await response.json().content;
                     if (!data || data.length === 0) {
                         throw new Error("EMPTY_RESPONSE");
                     }
