@@ -325,7 +325,7 @@ let postDict = ${postDictCode};`;
                     if (!sentence.trim()) continue;
 
                     const targetUrl = `https://www.google.com/transliterate?langpair=ja-Hira|ja&text=${encodeURIComponent(sentence)}`;
-                    const apiUrl = `https://withered-sun-99da.kito20111011.workers.dev/${targetUrl}`;
+                    const apiUrl = `https://withered-sun-99da.kito20111011.workers.dev/${encodeURIComponent(targetUrl)}`;
 
                     const controller = new AbortController();
                     const timeoutId = setTimeout(() => controller.abort(), 5000);
@@ -382,7 +382,6 @@ let postDict = ${postDictCode};`;
                 } else {
                     errorMessage = `🔌 通信失敗: ネットワーク未接続か、アクセスが遮断されました。(${error.message})`;
                 }
-                errorMessage = errorMessage + "URL:" + apiUrl
 
                 resultDiv.innerHTML = `<span class="error-text"></span>`;
                 resultDiv.querySelector('.error-text').textContent = errorMessage;
