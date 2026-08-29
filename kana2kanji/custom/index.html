@@ -337,14 +337,18 @@ let postDict = ${postDictCode};`;
                         throw new Error(`HTTP_STATUS_${response.status}`);
                     }
 
-                    const data = await response.json().content;
-                    if (!data || data.length === 0) {
+                    const data = await response.json();
+                    // APIレスポンスは直接配列の形式: [["きょう",["今日","きょう"...]]]
+                    if (!data || !Array.isArray(data) || data.length === 0) {
                         throw new Error("EMPTY_RESPONSE");
                     }
                     
                     let convertedSentence = "";
                     for (const item of data) {
-                        if (item && item[1] && item[1][0]) {
+                        // item = ["きょう", ["今日", "きょう", ...]]
+                        // item[1] = ["今日", "きょう", ...]
+                        // item[1][0] = "今日" (最初の候補を選択)
+                        if (item && Array.isArray(item) && item[1] && Array.isArray(item[1]) && item[1][0]) {
                             convertedSentence += item[1][0];
                         }
                     }
