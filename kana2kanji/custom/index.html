@@ -13,7 +13,7 @@
         button:disabled { background-color: #cccccc; cursor: not-allowed; }
         #copyBtn { background-color: #28a745; display: none; }
         #copyBtn:hover { background-color: #218838; }
-        #result { margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 5px; min-height: 50px; white-space: pre-wrap; }
+        #result { margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 5px; min-height: 50px; white-space: pre-wrap; font-size: 14px; }
         .error-text { color: #dc3545; font-weight: bold; }
         .copy-toast { display: inline-block; margin-left: 10px; color: #28a745; font-size: 14px; font-weight: bold; }
         
@@ -324,13 +324,21 @@ let postDict = ${postDictCode};`;
                 for (const sentence of sentences) {
                     if (!sentence.trim()) continue;
 
-                    const targetUrl = `https://www.google.com/transliterate?langpair=ja-Hira|ja&text=${encodeURIComponent(sentence)}`;
-                    const apiUrl = `https://withered-sun-99da.kito20111011.workers.dev/${encodeURIComponent(targetUrl)}`;
+                    const encodedSentence = encodeURIComponent(sentence);
+                    const targetUrl = `https://www.google.com/transliterate?langpair=ja-Hira|ja&text=${encodedSentence}`;
+                    const apiUrl = `https://withered-sun-99da.kito20111011.workers.dev/?url=${encodeURIComponent(targetUrl)}`;
+
+                    console.log('API URL:', apiUrl);
 
                     const controller = new AbortController();
                     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-                    const response = await fetch(apiUrl, { signal: controller.signal });
+                    const response = await fetch(apiUrl, { 
+                        signal: controller.signal,
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
                     clearTimeout(timeoutId);
 
                     if (!response.ok) {
@@ -338,6 +346,8 @@ let postDict = ${postDictCode};`;
                     }
 
                     const data = await response.json();
+                    console.log('Response data:', data);
+                    
                     // APIレスポンスは直接配列の形式: [["きょう",["今日","きょう"...]]]
                     if (!data || !Array.isArray(data) || data.length === 0) {
                         throw new Error("EMPTY_RESPONSE");
@@ -345,9 +355,6 @@ let postDict = ${postDictCode};`;
                     
                     let convertedSentence = "";
                     for (const item of data) {
-                        // item = ["きょう", ["今日", "きょう", ...]]
-                        // item[1] = ["今日", "きょう", ...]
-                        // item[1][0] = "今日" (最初の候補を選択)
                         if (item && Array.isArray(item) && item[1] && Array.isArray(item[1]) && item[1][0]) {
                             convertedSentence += item[1][0];
                         }
@@ -375,6 +382,7 @@ let postDict = ${postDictCode};`;
                 }
 
             } catch (error) {
+                console.error('Error:', error);
                 let errorMessage = "";
                 if (error.name === 'AbortError') {
                     errorMessage = "⏱️ タイムアウト: 変換処理に時間がかかりすぎたため中断しました。";
@@ -384,7 +392,7 @@ let postDict = ${postDictCode};`;
                 } else if (error instanceof SyntaxError) {
                     errorMessage = "⚠️ データ解析エラー: Googleから返ってきたデータの形が不正です。";
                 } else {
-                    errorMessage = `🔌 通信失敗: ネットワーク未接続か、アクセスが遮断されました。(${error.message})`;
+                    errorMessage = `🔌 通信失敗: ネットワーク未接続か、アクセスが遮断されました。\n詳細: ${error.message}`;
                 }
 
                 resultDiv.innerHTML = `<span class="error-text"></span>`;
