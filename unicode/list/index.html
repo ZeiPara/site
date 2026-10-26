@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Unicode 一覧表 (20文字ごとに改行 / 1ページ10,000文字)</title>
+  <title>Unicode 一覧表 (横32個 × 縦256行)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -12,7 +12,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.25rem;
+      font-size: 0.9rem;
       border: 1px solid #e5e7eb;
       transition: all 0.15s ease;
       background-color: #ffffff;
@@ -27,21 +27,21 @@
     .unicode-cell:hover {
       background-color: #3b82f6;
       color: #ffffff !important;
-      transform: scale(1.1);
+      transform: scale(1.2);
       z-index: 10;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
       border-radius: 0.25rem;
     }
-    .grid-20 {
+    .grid-32 {
       display: grid;
-      grid-template-columns: 80px repeat(20, minmax(0, 1fr));
+      grid-template-columns: 70px repeat(32, minmax(0, 1fr));
     }
-    @media (max-width: 1024px) {
-      .grid-20 {
-        grid-template-columns: 60px repeat(20, minmax(0, 1fr));
+    @media (max-width: 1280px) {
+      .grid-32 {
+        grid-template-columns: 50px repeat(32, minmax(0, 1fr));
       }
       .unicode-cell {
-        font-size: 0.875rem;
+        font-size: 0.75rem;
       }
     }
   </style>
@@ -50,10 +50,10 @@
 
   <!-- ヘッダー -->
   <header class="bg-white dark:bg-gray-800 shadow-md sticky top-0 z-30 transition-colors duration-200">
-    <div class="max-w-7xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-4">
+    <div class="max-w-[1600px] mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-4">
       <div class="flex items-center space-x-3">
         <i class="fa-solid fa-font text-blue-600 dark:text-blue-400 text-2xl"></i>
-        <h1 class="text-xl font-bold">Unicode Explorer (20文字/行)</h1>
+        <h1 class="text-xl font-bold">Unicode Explorer (横32個 × 縦256行)</h1>
       </div>
       
       <div class="flex items-center space-x-3 flex-wrap gap-y-2">
@@ -74,7 +74,7 @@
   </header>
 
   <!-- メインコンテンツ -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-6 flex flex-col">
+  <main class="flex-1 max-w-[1600px] w-full mx-auto px-4 py-6 flex flex-col">
     <!-- プリセットジャンパー -->
     <div class="mb-6 flex flex-wrap items-center gap-2 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
       <span class="text-sm font-medium text-gray-500 dark:text-gray-400 mr-2"><i class="fa-solid fa-bolt mr-1"></i>素早く移動:</span>
@@ -88,29 +88,25 @@
     <!-- ページネーション & ステータス -->
     <div class="flex flex-wrap items-center justify-between gap-4 mb-4 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
       <div id="statusInfo" class="text-sm font-medium text-gray-600 dark:text-gray-300">
-        表示中: <span id="rangeStart" class="font-mono text-blue-600 dark:text-blue-400">U+000000</span> - <span id="rangeEnd" class="font-mono text-blue-600 dark:text-blue-400">U+00270F</span> (全 154,998+ 文字中 10,000 文字表示)
+        表示中: <span id="rangeStart" class="font-mono text-blue-600 dark:text-blue-400">U+000000</span> - <span id="rangeEnd" class="font-mono text-blue-600 dark:text-blue-400">U+001FFF</span> (全 154,998+ 文字中 8,192 文字表示)
       </div>
       
       <div class="flex items-center space-x-2">
         <button id="prevBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-1">
-          <i class="fa-solid fa-chevron-left"></i> 前の10,000文字
+          <i class="fa-solid fa-chevron-left"></i> 前の8,192文字
         </button>
-        <span id="pageIndicator" class="text-sm font-mono font-semibold px-2">1 / 17</span>
+        <span id="pageIndicator" class="text-sm font-mono font-semibold px-2">1 / 136</span>
         <button id="nextBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-1">
-          次の10,000文字 <i class="fa-solid fa-chevron-right"></i>
+          次の8,192文字 <i class="fa-solid fa-chevron-right"></i>
         </button>
       </div>
     </div>
 
     <!-- テーブルコンテナ -->
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-x-auto p-4 mb-6">
-      <!-- 20カラムヘッダー (+0 〜 +19) -->
-      <div class="grid-20 border-b border-gray-300 dark:border-gray-600 pb-2 mb-2 text-center text-xs font-mono font-bold text-gray-500 dark:text-gray-400">
+      <!-- 32カラムヘッダー (+0 〜 +31) -->
+      <div id="gridHeader" class="grid-32 border-b border-gray-300 dark:border-gray-600 pb-2 mb-2 text-center text-[10px] font-mono font-bold text-gray-500 dark:text-gray-400">
         <div>コード</div>
-        <div>+0</div><div>+1</div><div>+2</div><div>+3</div><div>+4</div>
-        <div>+5</div><div>+6</div><div>+7</div><div>+8</div><div>+9</div>
-        <div>+10</div><div>+11</div><div>+12</div><div>+13</div><div>+14</div>
-        <div>+15</div><div>+16</div><div>+17</div><div>+18</div><div>+19</div>
       </div>
 
       <!-- 文字グリッド本体 -->
@@ -160,12 +156,14 @@
 
   <script>
     const MAX_CODEPOINT = 0x10FFFF;
-    const PAGE_SIZE = 10000; // 1ページあたり10,000文字 (500行 × 20列)
-    const COLUMNS = 20;
+    const COLUMNS = 32;     // 横32個
+    const ROWS = 256;       // 縦256個
+    const PAGE_SIZE = COLUMNS * ROWS; // 1ページあたり8,192文字
 
     let currentPage = 0;
     const totalPages = Math.ceil((MAX_CODEPOINT + 1) / PAGE_SIZE);
 
+    const gridHeader = document.getElementById('gridHeader');
     const gridBody = document.getElementById('gridBody');
     const rangeStart = document.getElementById('rangeStart');
     const rangeEnd = document.getElementById('rangeEnd');
@@ -182,10 +180,17 @@
     const modalDec = document.getElementById('modalDec');
     const modalHtml = document.getElementById('modalHtml');
     const modalUtf8 = document.getElementById('modalUtf8');
-    modalUtf16 = document.getElementById('modalUtf16');
+    const modalUtf16 = document.getElementById('modalUtf16');
     const copyBtn = document.getElementById('copyBtn');
 
     let selectedChar = '';
+
+    // ヘッダー作成 (+0 〜 +31)
+    for (let c = 0; c < COLUMNS; c++) {
+      const colDiv = document.createElement('div');
+      colDiv.textContent = `+${c}`;
+      gridHeader.appendChild(colDiv);
+    }
 
     // ダークモード切替
     const themeToggle = document.getElementById('themeToggle');
@@ -193,7 +198,7 @@
       document.documentElement.classList.toggle('dark');
     });
 
-    // Unicodeの文字描画関数（パフォーマンス最適化）
+    // 描画処理
     function renderPage(page) {
       currentPage = page;
       const startCode = page * PAGE_SIZE;
@@ -208,27 +213,27 @@
 
       let htmlBuffer = '';
 
-      for (let i = startCode; i <= endCode; i += COLUMNS) {
-        const rowHeader = `U+${i.toString(16).toUpperCase().padStart(5, '0')}x`;
-        htmlBuffer += `<div class="grid-20 items-center border-b border-gray-100 dark:border-gray-800">`;
-        htmlBuffer += `<div class="text-[10px] sm:text-xs font-mono font-bold text-gray-400 text-center py-1">${rowHeader}</div>`;
+      for (let r = 0; r < ROWS; r++) {
+        const rowStartCode = startCode + (r * COLUMNS);
+        if (rowStartCode > MAX_CODEPOINT) break;
 
-        for (let j = 0; j < COLUMNS; j++) {
-          const cp = i + j;
+        const rowHeader = `U+${rowStartCode.toString(16).toUpperCase().padStart(5, '0')}`;
+        htmlBuffer += `<div class="grid-32 items-center border-b border-gray-100 dark:border-gray-800">`;
+        htmlBuffer += `<div class="text-[9px] sm:text-[10px] font-mono font-bold text-gray-400 text-center py-1 overflow-hidden">${rowHeader}</div>`;
+
+        for (let c = 0; c < COLUMNS; c++) {
+          const cp = rowStartCode + c;
           if (cp > endCode) {
             htmlBuffer += `<div class="unicode-cell text-gray-200 dark:text-gray-700 cursor-default"></div>`;
             continue;
           }
 
-          // 制御文字やサロゲートペア等の特別処理
           let displayChar = '';
           let isControl = false;
 
           if ((cp >= 0xD800 && cp <= 0xDFFF)) {
-            // サロゲート領域
             isControl = true;
           } else if (cp < 32 || (cp >= 127 && cp < 160)) {
-            // 制御文字
             isControl = true;
           } else {
             try {
@@ -239,7 +244,7 @@
           }
 
           if (isControl) {
-            htmlBuffer += `<div class="unicode-cell text-[10px] text-gray-300 dark:text-gray-600 bg-gray-50 dark:bg-gray-800/50" data-cp="${cp}" onclick="openModal(${cp})">･</div>`;
+            htmlBuffer += `<div class="unicode-cell text-[9px] text-gray-300 dark:text-gray-600 bg-gray-50 dark:bg-gray-800/50" data-cp="${cp}" onclick="openModal(${cp})">･</div>`;
           } else {
             htmlBuffer += `<div class="unicode-cell" data-cp="${cp}" onclick="openModal(${cp})">${displayChar}</div>`;
           }
@@ -299,7 +304,6 @@
       modalDec.textContent = cp.toLocaleString();
       modalHtml.textContent = `&#${cp}; (&#x${hex};)`;
 
-      // UTF-8 & UTF-16 バイト計算
       try {
         const encoder = new TextEncoder();
         const utf8Bytes = Array.from(encoder.encode(char)).map(b => '0x' + b.toString(16).toUpperCase().padStart(2, '0')).join(' ');
