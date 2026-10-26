@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unicode 一覧表 (無限スクロール & バーチャルレンダリング)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .unicode-cell {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      border: 1px solid #e5e7eb;
+      transition: background-color 0.1s ease;
+      background-color: #ffffff;
+      user-select: none;
+      cursor: pointer;
+    }
+    .dark .unicode-cell {
+      border-color: #374151;
+      background-color: #1f2937;
+      color: #f3f4f6;
+    }
+    .unicode-cell:hover {
+      background-color: #3b82f6;
+      color: #ffffff !important;
+      border-radius: 0.25rem;
+    }
+    .grid-32 {
+      display: grid;
+      grid-template-columns: 70px repeat(32, minmax(0, 1fr));
+    }
+    @media (max-width: 1280px) {
+      .grid-32 {
+        grid-template-columns: 50px repeat(32, minmax(0, 1fr));
+      }
+      .unicode-cell {
+        font-size: 0.75rem;
+      }
+    }
+    /* スクロール領域用 */
+    #scrollViewport {
+      height: calc(100vh - 180px);
+      overflow-y: auto;
+      position: relative;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col font-sans transition-colors duration-200">
+
+  <!-- ヘッダー -->
+  <header class="bg-white dark:bg-gray-800 shadow-md sticky top-0 z-30 transition-colors duration-200">
+    <div class="max-w-[1600px] mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <i class="fa-solid fa-font text-blue-600 dark:text-blue-400 text-2xl"></i>
+        <h1 class="text-lg font-bold">Unicode Explorer (縦全接続・仮想スクロール)</h1>
+      </div>
+      
+      <div class="flex items-center space-x-3 flex-wrap gap-y-2">
+        <!-- 検索バー -->
+        <div class="relative">
+          <input type="text" id="searchInput" placeholder="文字 または 16進数 (例: U+4E00, あ)" 
+                 class="pl-9 pr-4 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-64">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-sm"></i>
+        </div>
+
+        <!-- ダークモード切り替え -->
+        <button id="themeToggle" class="p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition">
+          <i class="fa-solid fa-moon dark:hidden"></i>
+          <i class="fa-solid fa-sun hidden dark:inline"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- メインコンテンツ -->
+  <main class="flex-1 max-w-[1600px] w-full mx-auto px-4 py-4 flex flex-col">
+    <!-- プリセットジャンパー & ステータス -->
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-2 bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+      <div class="flex flex-wrap items-center gap-1.5">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 mr-1"><i class="fa-solid fa-bolt mr-1"></i>移動:</span>
+        <button onclick="scrollToCodePoint(0x0000)" class="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-blue-100 dark:hover:bg-blue-900 text-xs font-semibold rounded-md transition">ASCII (U+0000)</button>
+        <button onclick="scrollToCodePoint(0x3040)" class="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-blue-100 dark:hover:bg-blue-900 text-xs font-semibold rounded-md transition">ひらがな (U+3040)</button>
+        <button onclick="scrollToCodePoint(0x30A0)" class="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-blue-100 dark:hover:bg-blue-900 text-xs font-semibold rounded-md transition">カタカナ (U+30A0)</button>
+        <button onclick="scrollToCodePoint(0x4E00)" class="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-blue-100 dark:hover:bg-blue-900 text-xs font-semibold rounded-md transition">CJK漢字 (U+4E00)</button>
+        <button onclick="scrollToCodePoint(0x1F600)" class="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-blue-100 dark:hover:bg-blue-900 text-xs font-semibold rounded-md transition">絵文字 (U+1F600)</button>
+      </div>
+      <div class="text-xs font-medium text-gray-500 dark:text-gray-400">
+        画面表示中: <span id="currentRangeInfo" class="font-mono text-blue-600 dark:text-blue-400 font-bold">U+000000 〜</span>
+      </div>
+    </div>
+
+    <!-- テーブルコンテナ（スクロールビュー） -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
+      <!-- 固定ヘッダー (+0 〜 +31) -->
+      <div id="gridHeader" class="grid-32 border-b border-gray-300 dark:border-gray-600 py-2 text-center text-[10px] font-mono font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 z-10">
+        <div>コード</div>
+      </div>
+
+      <!-- 仮想スクロール領域 -->
+      <div id="scrollViewport">
+        <!-- 全体の高さを再現するスペーサー -->
+        <div id="virtualSpacer" class="w-full relative">
+          <!-- 実際に表示されているブロックだけがここに入る -->
+          <div id="visibleContent" class="absolute left-0 right-0 font-mono"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 詳細モーダル -->
+  <div id="modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-gray-200 dark:border-gray-700 transform transition-all">
+      <div class="flex justify-between items-start mb-4">
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Unicode 詳細情報</h3>
+        <button id="closeModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+      </div>
+
+      <div class="flex flex-col items-center justify-center my-6 py-6 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700">
+        <span id="modalChar" class="text-6xl mb-2 font-serif"></span>
+        <span id="modalCode" class="text-sm font-mono text-blue-600 dark:text-blue-400 font-bold"></span>
+      </div>
+
+      <div class="space-y-3 text-sm">
+        <div class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+          <span class="text-gray-500 dark:text-gray-400">10進数コード:</span>
+          <span id="modalDec" class="font-mono font-semibold"></span>
+        </div>
+        <div class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+          <span class="text-gray-500 dark:text-gray-400">HTML実体参照:</span>
+          <span id="modalHtml" class="font-mono font-semibold"></span>
+        </div>
+        <div class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+          <span class="text-gray-500 dark:text-gray-400">UTF-8:</span>
+          <span id="modalUtf8" class="font-mono font-semibold"></span>
+        </div>
+        <div class="flex justify-between py-2">
+          <span class="text-gray-500 dark:text-gray-400">UTF-16:</span>
+          <span id="modalUtf16" class="font-mono font-semibold"></span>
+        </div>
+      </div>
+
+      <button id="copyBtn" class="mt-6 w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition flex items-center justify-center gap-2">
+        <i class="fa-regular fa-copy"></i> 文字をコピー
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const MAX_CODEPOINT = 0x10FFFF;
+    const COLUMNS = 32;
+    const TOTAL_ROWS = Math.ceil((MAX_CODEPOINT + 1) / COLUMNS); // 全34,816行
+
+    // 1ブロックあたりの行数 (256行 = 8,192文字)
+    const BLOCK_ROWS = 256;
+    const BLOCK_SIZE = COLUMNS * BLOCK_ROWS;
+    const TOTAL_BLOCKS = Math.ceil((MAX_CODEPOINT + 1) / BLOCK_SIZE);
+
+    // 1行の高さを推測（CSSのセル高さ＋ボーダー）
+    let ROW_HEIGHT = 37; 
+
+    const scrollViewport = document.getElementById('scrollViewport');
+    const virtualSpacer = document.getElementById('virtualSpacer');
+    const visibleContent = document.getElementById('visibleContent');
+    const currentRangeInfo = document.getElementById('currentRangeInfo');
+    const searchInput = document.getElementById('searchInput');
+
+    // モーダル要素
+    const modal = document.getElementById('modal');
+    const closeModal = document.getElementById('closeModal');
+    const modalChar = document.getElementById('modalChar');
+    const modalCode = document.getElementById('modalCode');
+    const modalDec = document.getElementById('modalDec');
+    const modalHtml = document.getElementById('modalHtml');
+    const modalUtf8 = document.getElementById('modalUtf8');
+    const modalUtf16 = document.getElementById('modalUtf16');
+    const copyBtn = document.getElementById('copyBtn');
+
+    let selectedChar = '';
+    let renderedBlocks = new Set();
+
+    // ヘッダー生成 (+0 〜 +31)
+    const gridHeader = document.getElementById('gridHeader');
+    for (let c = 0; c < COLUMNS; c++) {
+      const colDiv = document.createElement('div');
+      colDiv.textContent = `+${c}`;
+      gridHeader.appendChild(colDiv);
+    }
+
+    // 全体の高さを設定
+    function updateSpacerHeight() {
+      const totalHeight = TOTAL_ROWS * ROW_HEIGHT;
+      virtualSpacer.style.height = `${totalHeight}px`;
+    }
+
+    // 指定したブロックのHTML文字列を生成
+    function createBlockHtml(blockIndex) {
+      const startCode = blockIndex * BLOCK_SIZE;
+      const endCode = Math.min(startCode + BLOCK_SIZE - 1, MAX_CODEPOINT);
+      const rowsInBlock = Math.ceil((endCode - startCode + 1) / COLUMNS);
+
+      let html = `<div id="block-${blockIndex}" data-block="${blockIndex}" style="position: absolute; top: ${blockIndex * BLOCK_ROWS * ROW_HEIGHT}px; left: 0; right: 0;">`;
+
+      for (let r = 0; r < rowsInBlock; r++) {
+        const rowStartCode = startCode + (r * COLUMNS);
+        if (rowStartCode > MAX_CODEPOINT) break;
+
+        const rowHeader = `U+${rowStartCode.toString(16).toUpperCase().padStart(5, '0')}`;
+        html += `<div class="grid-32 items-center border-b border-gray-100 dark:border-gray-800">`;
+        html += `<div class="text-[9px] sm:text-[10px] font-mono font-bold text-gray-400 text-center py-1 overflow-hidden bg-gray-50/50 dark:bg-gray-800/30">${rowHeader}</div>`;
+
+        for (let c = 0; c < COLUMNS; c++) {
+          const cp = rowStartCode + c;
+          if (cp > endCode) {
+            html += `<div class="unicode-cell text-gray-200 dark:text-gray-700 cursor-default"></div>`;
+            continue;
+          }
+
+          let displayChar = '';
+          let isControl = false;
+
+          if (cp >= 0xD800 && cp <= 0xDFFF) {
+            isControl = true;
+          } else if (cp < 32 || (cp >= 127 && cp < 160)) {
+            isControl = true;
+          } else {
+            try {
+              displayChar = String.fromCodePoint(cp);
+            } catch (e) {
+              isControl = true;
+            }
+          }
+
+          if (isControl) {
+            html += `<div class="unicode-cell text-[9px] text-gray-300 dark:text-gray-600 bg-gray-50 dark:bg-gray-800/50" onclick="openModal(${cp})">･</div>`;
+          } else {
+            html += `<div class="unicode-cell" onclick="openModal(${cp})">${displayChar}</div>`;
+          }
+        }
+        html += `</div>`;
+      }
+
+      html += `</div>`;
+      return html;
+    }
+
+    // スクロール位置に応じて画面内＋上下1ブロックだけを動的にロード/アンロード
+    function onScroll() {
+      const scrollTop = scrollViewport.scrollTop;
+      const viewportHeight = scrollViewport.clientHeight;
+
+      // 現在画面に見えているブロックのインデックスを計算
+      const blockHeight = BLOCK_ROWS * ROW_HEIGHT;
+      const currentBlock = Math.floor(scrollTop / blockHeight);
+
+      // 読込対象：現在のブロック、および上下1ブロック (計3ブロックのみ)
+      const targetBlocks = new Set();
+      for (let i = currentBlock - 1; i <= currentBlock + 1; i++) {
+        if (i >= 0 && i < TOTAL_BLOCKS) {
+          targetBlocks.add(i);
+        }
+      }
+
+      // 不要になったブロックをDOMから削除
+      renderedBlocks.forEach(b => {
+        if (!targetBlocks.has(b)) {
+          const el = document.getElementById(`block-${b}`);
+          if (el) el.remove();
+          renderedBlocks.delete(b);
+        }
+      });
+
+      // 新しく必要になったブロックを追加
+      targetBlocks.forEach(b => {
+        if (!renderedBlocks.has(b)) {
+          visibleContent.insertAdjacentHTML('beforeend', createBlockHtml(b));
+          renderedBlocks.add(b);
+        }
+      });
+
+      // 情報更新
+      const topCode = Math.min(Math.floor(scrollTop / ROW_HEIGHT) * COLUMNS, MAX_CODEPOINT);
+      currentRangeInfo.textContent = `U+${topCode.toString(16).toUpperCase().padStart(6, '0')} 〜`;
+    }
+
+    // 指定コードポイントへスクロール
+    function scrollToCodePoint(cp) {
+      if (cp < 0) cp = 0;
+      if (cp > MAX_CODEPOINT) cp = MAX_CODEPOINT;
+      const row = Math.floor(cp / COLUMNS);
+      scrollViewport.scrollTop = row * ROW_HEIGHT;
+      onScroll();
+    }
+
+    // 実測値による行高さ補正
+    function measureRowHeight() {
+      if (!renderedBlocks.has(0)) {
+        visibleContent.insertAdjacentHTML('beforeend', createBlockHtml(0));
+        renderedBlocks.add(0);
+      }
+      const firstBlock = document.getElementById('block-0');
+      if (firstBlock && firstBlock.firstElementChild) {
+        const measured = firstBlock.firstElementChild.getBoundingClientRect().height;
+        if (measured > 0) {
+          ROW_HEIGHT = measured;
+          updateSpacerHeight();
+        }
+      }
+    }
+
+    // イベントリスナー設定
+    scrollViewport.addEventListener('scroll', onScroll);
+
+    // 検索機能
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const query = searchInput.value.trim();
+        if (!query) return;
+
+        let cp = null;
+        if (query.toUpperCase().startsWith('U+')) {
+          cp = parseInt(query.substring(2), 16);
+        } else if (query.startsWith('0x')) {
+          cp = parseInt(query.substring(2), 16);
+        } else if (/^[0-9A-Fa-f]+$/.test(query) && query.length >= 4) {
+          cp = parseInt(query, 16);
+        } else {
+          cp = query.codePointAt(0);
+        }
+
+        if (cp !== null && !isNaN(cp) && cp >= 0 && cp <= MAX_CODEPOINT) {
+          scrollToCodePoint(cp);
+        } else {
+          alert('有効なUnicodeコードポイントまたは文字を入力してください。');
+        }
+      }
+    });
+
+    // ダークモード切替
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+    });
+
+    // モーダル処理
+    window.openModal = function(cp) {
+      const hex = cp.toString(16).toUpperCase().padStart(4, '0');
+      let char = '';
+      try {
+        char = String.fromCodePoint(cp);
+      } catch (e) {
+        char = '';
+      }
+
+      selectedChar = char;
+      modalChar.textContent = char;
+      modalCode.textContent = `U+${hex}`;
+      modalDec.textContent = cp.toLocaleString();
+      modalHtml.textContent = `&#${cp}; (&#x${hex};)`;
+
+      try {
+        const encoder = new TextEncoder();
+        const utf8Bytes = Array.from(encoder.encode(char)).map(b => '0x' + b.toString(16).toUpperCase().padStart(2, '0')).join(' ');
+        modalUtf8.textContent = utf8Bytes || 'N/A';
+      } catch {
+        modalUtf8.textContent = 'N/A';
+      }
+
+      const utf16Units = [];
+      for (let i = 0; i < char.length; i++) {
+        utf16Units.push('0x' + char.charCodeAt(i).toString(16).toUpperCase().padStart(4, '0'));
+      }
+      modalUtf16.textContent = utf16Units.join(' ') || 'N/A';
+
+      modal.classList.remove('hidden');
+    };
+
+    closeModal.addEventListener('click', () => modal.classList.add('hidden'));
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.classList.add('hidden');
+    });
+
+    copyBtn.addEventListener('click', () => {
+      if (selectedChar) {
+        navigator.clipboard.writeText(selectedChar);
+        const originalText = copyBtn.innerHTML;
+        copyBtn.innerHTML = `<i class="fa-solid fa-check"></i> コピーしました！`;
+        setTimeout(() => copyBtn.innerHTML = originalText, 1500);
+      }
+    });
+
+    // 初期化
+    updateSpacerHeight();
+    measureRowHeight();
+    onScroll();
+  </script>
+</body>
+</html>
