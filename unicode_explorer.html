@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unicode Explorer - 154,998+ Characters Grid</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            500: '#0284c7',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+        /* Monospace font for code points */
+        .font-mono-code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200">
+
+    <!-- Header Section -->
+    <header class="sticky top-0 z-20 bg-white/90 dark:bg-gray-800/90 backdrop-blur border-b border-gray-200 dark:border-gray-700 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-4">
+            <!-- Title & Badge -->
+            <div class="flex items-center space-x-3">
+                <div class="p-2 bg-sky-500 text-white rounded-lg shadow-md">
+                    <i class="fa-solid font-mono text-xl">U+</i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">Unicode Explorer</h1>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">20文字ごとの改行グリッド表示 / 154,998+ Codepoints</p>
+                </div>
+            </div>
+
+            <!-- Global Actions & Search Bar -->
+            <div class="flex items-center gap-3 flex-1 max-w-md">
+                <div class="relative w-full">
+                    <input type="text" id="searchInput" placeholder="文字または 16進数 (例: あ, U+4E00, 0041)..." 
+                           class="w-full pl-10 pr-10 py-2 bg-gray-100 dark:bg-gray-700 border border-transparent focus:border-sky-500 dark:focus:border-sky-400 rounded-lg text-sm focus:outline-none transition-all">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400"></i>
+                    <button id="clearSearch" class="hidden absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Controls -->
+            <div class="flex items-center gap-2">
+                <button id="themeToggle" title="ダーク/ライトモード切替" class="p-2.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+                    <i class="fa-solid fa-moon dark:hidden"></i>
+                    <i class="fa-solid fa-sun hidden dark:block"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 flex flex-col w-full">
+
+        <!-- Controls Toolbar -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700 mb-6 flex flex-wrap items-center justify-between gap-4">
+            
+            <!-- Quick Range Jump Presets -->
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mr-1">ジャンプ:</span>
+                <button data-jump="0" class="jump-btn px-2.5 py-1 text-xs rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-sky-500 hover:text-white dark:hover:bg-sky-600 transition">基本ラテン (U+0000)</button>
+                <button data-jump="12352" class="jump-btn px-2.5 py-1 text-xs rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-sky-500 hover:text-white dark:hover:bg-sky-600 transition">ひらがな (U+3040)</button>
+                <button data-jump="12448" class="jump-btn px-2.5 py-1 text-xs rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-sky-500 hover:text-white dark:hover:bg-sky-600 transition">カタカナ (U+30A0)</button>
+                <button data-jump="19968" class="jump-btn px-2.5 py-1 text-xs rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-sky-500 hover:text-white dark:hover:bg-sky-600 transition">CJK統合漢字 (U+4E00)</button>
+                <button data-jump="128512" class="jump-btn px-2.5 py-1 text-xs rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-sky-500 hover:text-white dark:hover:bg-sky-600 transition">絵文字 (U+1F600)</button>
+            </div>
+
+            <!-- Custom Code Point Jump -->
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-500 dark:text-gray-400">コードポイント:</span>
+                <input type="text" id="jumpInput" placeholder="U+4E00" class="w-24 px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded text-center focus:outline-none focus:border-sky-500">
+                <button id="jumpBtn" class="px-3 py-1 bg-sky-600 hover:bg-sky-700 text-white text-xs font-medium rounded transition">移動</button>
+            </div>
+        </div>
+
+        <!-- Pagination Bar (Top) -->
+        <div id="paginationTop" class="flex flex-wrap items-center justify-between gap-4 mb-4 text-sm">
+            <div id="pageStats" class="text-xs text-gray-500 dark:text-gray-400 font-mono-code">
+                表示中: 0 - 0 (全 0 行 / 0 文字)
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="prevPage" class="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition">
+                    <i class="fa-solid fa-chevron-left mr-1"></i> 前へ
+                </button>
+                <div class="flex items-center gap-1">
+                    <input type="number" id="pageInput" min="1" class="w-16 text-center py-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded text-sm focus:outline-none focus:border-sky-500">
+                    <span id="totalPagesText" class="text-xs text-gray-500 dark:text-gray-400">/ 1 ページ</span>
+                </div>
+                <button id="nextPage" class="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition">
+                    次へ <i class="fa-solid fa-chevron-right ml-1"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Unicode Grid Table Container -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex-1 flex flex-col">
+            <div class="overflow-x-auto custom-scrollbar">
+                <table class="w-full text-center border-collapse">
+                    <thead>
+                        <tr class="bg-gray-100 dark:bg-gray-700/60 border-b border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 uppercase font-mono-code">
+                            <th class="py-2.5 px-3 border-r border-gray-200 dark:border-gray-700 w-28 text-left">開始 CodePoint</th>
+                            <th colspan="20" class="py-2.5 px-2">文字グリッド (1行20文字 / 各列 +0 〜 +19)</th>
+                        </tr>
+                        <tr class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-[10px] text-gray-400 font-mono-code">
+                            <th class="py-1 px-2 border-r border-gray-200 dark:border-gray-700">Offset</th>
+                            <script>
+                                for(let i=0; i<20; i++) {
+                                    document.write(`<th class="py-1 min-w-[36px]">+${i}</th>`);
+                                }
+                            </script>
+                        </tr>
+                    </thead>
+                    <tbody id="unicodeGridBody" class="divide-y divide-gray-100 dark:divide-gray-700/50 font-sans">
+                        <!-- Dynamic Rows Will Be Rendered Here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty / Search Not Found State -->
+            <div id="noResults" class="hidden p-12 text-center text-gray-400">
+                <i class="fa-solid fa-magnifying-glass text-4xl mb-3 opacity-50"></i>
+                <p class="text-base font-medium">該当するUnicode文字が見つかりませんでした。</p>
+                <p class="text-xs mt-1">16進数表記 (例: 4E00) や特定の1文字で検索をお試しください。</p>
+            </div>
+        </div>
+
+        <!-- Toast Notification -->
+        <div id="toast" class="fixed bottom-5 right-5 transform translate-y-10 opacity-0 transition-all duration-300 bg-gray-900 text-white px-4 py-2.5 rounded-lg shadow-lg flex items-center gap-2 z-50 pointer-events-none text-sm">
+            <i class="fa-solid fa-circle-check text-green-400"></i>
+            <span id="toastMsg">コピーしました</span>
+        </div>
+    </main>
+
+    <!-- Character Inspector Modal -->
+    <div id="charModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-200">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-700 transform scale-95 transition-transform duration-200" id="modalCard">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-start mb-4">
+                <span id="modalCategory" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-100 dark:bg-sky-900/60 text-sky-700 dark:text-sky-300">
+                    Unicode Character
+                </span>
+                <button id="closeModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Character Display Box -->
+            <div class="flex flex-col items-center justify-center p-6 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-700/60 mb-6">
+                <div id="modalChar" class="text-7xl mb-2 select-all h-24 flex items-center justify-center"></div>
+                <div id="modalHex" class="text-xl font-bold font-mono-code text-sky-600 dark:text-sky-400"></div>
+                <div id="modalDecimal" class="text-xs text-gray-400 font-mono-code mt-0.5"></div>
+            </div>
+
+            <!-- Encoding Details Grid -->
+            <div class="space-y-3 mb-6 text-xs">
+                <div class="flex justify-between p-2.5 rounded-lg bg-gray-50 dark:bg-gray-700/40">
+                    <span class="text-gray-500 dark:text-gray-400">UTF-8:</span>
+                    <span id="modalUtf8" class="font-mono-code font-semibold text-gray-800 dark:text-gray-200"></span>
+                </div>
+                <div class="flex justify-between p-2.5 rounded-lg bg-gray-50 dark:bg-gray-700/40">
+                    <span class="text-gray-500 dark:text-gray-400">UTF-16:</span>
+                    <span id="modalUtf16" class="font-mono-code font-semibold text-gray-800 dark:text-gray-200"></span>
+                </div>
+                <div class="flex justify-between p-2.5 rounded-lg bg-gray-50 dark:bg-gray-700/40">
+                    <span class="text-gray-500 dark:text-gray-400">HTML Entity:</span>
+                    <span id="modalHtmlEntity" class="font-mono-code font-semibold text-gray-800 dark:text-gray-200"></span>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="grid grid-cols-2 gap-3">
+                <button id="copyCharBtn" class="py-2.5 px-4 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-sm font-medium transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-copy"></i> 文字をコピー
+                </button>
+                <button id="copyCodeBtn" class="py-2.5 px-4 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl text-sm font-medium transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-code"></i> U+Code コピー
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- CONSTANTS & CONFIG ---
+        const MAX_UNICODE = 0x10FFFF; // Total Unicode space
+        const CHARS_PER_ROW = 20;     // 20 characters per line requirement
+        const ROWS_PER_PAGE = 50;     // 50 rows per page = 1,000 characters per page for optimum UI performance
+        const CHARS_PER_PAGE = ROWS_PER_PAGE * CHARS_PER_ROW;
+
+        // --- APPLICATION STATE ---
+        let currentPage = 1;
+        let activeFilteredPoints = null; // null means viewing all standard code points
+        let activeSelectedCodePoint = null;
+
+        // --- DOM ELEMENTS ---
+        const gridBody = document.getElementById('unicodeGridBody');
+        const searchInput = document.getElementById('searchInput');
+        const clearSearchBtn = document.getElementById('clearSearch');
+        const pageInput = document.getElementById('pageInput');
+        const totalPagesText = document.getElementById('totalPagesText');
+        const prevPageBtn = document.getElementById('prevPage');
+        const nextPageBtn = document.getElementById('nextPage');
+        const pageStats = document.getElementById('pageStats');
+        const jumpInput = document.getElementById('jumpInput');
+        const jumpBtn = document.getElementById('jumpBtn');
+        const noResults = document.getElementById('noResults');
+
+        // Modal Elements
+        const charModal = document.getElementById('charModal');
+        const modalCard = document.getElementById('modalCard');
+        const closeModalBtn = document.getElementById('closeModal');
+        const modalChar = document.getElementById('modalChar');
+        const modalHex = document.getElementById('modalHex');
+        const modalDecimal = document.getElementById('modalDecimal');
+        const modalUtf8 = document.getElementById('modalUtf8');
+        const modalUtf16 = document.getElementById('modalUtf16');
+        const modalHtmlEntity = document.getElementById('modalHtmlEntity');
+        const copyCharBtn = document.getElementById('copyCharBtn');
+        const copyCodeBtn = document.getElementById('copyCodeBtn');
+
+        // Theme Toggle
+        const themeToggle = document.getElementById('themeToggle');
+
+        // --- HELPER FUNCTIONS ---
+        function isValidCodePoint(cp) {
+            // Filter out surrogate pairs range (D800 - DFFF) as they aren't valid scalar values
+            return cp >= 0 && cp <= MAX_UNICODE && !(cp >= 0xD800 && cp <= 0xDFFF);
+        }
+
+        function codePointToHex(cp) {
+            return 'U+' + cp.toString(16).toUpperCase().padStart(4, '0');
+        }
+
+        function getUtf8Bytes(cp) {
+            const char = String.fromCodePoint(cp);
+            const encoder = new TextEncoder();
+            const bytes = encoder.encode(char);
+            return Array.from(bytes).map(b => '0x' + b.toString(16).toUpperCase().padStart(2, '0')).join(' ');
+        }
+
+        function getUtf16Bytes(cp) {
+            if (cp <= 0xFFFF) {
+                return '0x' + cp.toString(16).toUpperCase().padStart(4, '0');
+            } else {
+                // Surrogate pair calculation
+                const cpPrime = cp - 0x10000;
+                const high = 0xD800 + (cpPrime >> 10);
+                const low = 0xDC00 + (cpPrime & 0x3FF);
+                return '0x' + high.toString(16).toUpperCase() + ' 0x' + low.toString(16).toUpperCase();
+            }
+        }
+
+        // --- RENDER ENGINE ---
+        function renderGrid() {
+            gridBody.innerHTML = '';
+
+            let totalItems = activeFilteredPoints ? activeFilteredPoints.length : (MAX_UNICODE + 1);
+            let totalPages = Math.ceil(totalItems / CHARS_PER_PAGE);
+            
+            if (totalPages === 0) totalPages = 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            pageInput.value = currentPage;
+            totalPagesText.textContent = `/ ${totalPages.toLocaleString()} ページ`;
+
+            prevPageBtn.disabled = (currentPage === 1);
+            nextPageBtn.disabled = (currentPage === totalPages);
+
+            let startIndex = (currentPage - 1) * CHARS_PER_PAGE;
+            let endIndex = Math.min(startIndex + CHARS_PER_PAGE, totalItems);
+
+            if (totalItems === 0) {
+                noResults.classList.remove('hidden');
+                pageStats.textContent = '表示対象なし';
+                return;
+            } else {
+                noResults.classList.add('hidden');
+            }
+
+            pageStats.textContent = `表示中: ${startIndex.toLocaleString()} - ${(endIndex - 1).toLocaleString()} (全 ${totalItems.toLocaleString()} 文字)`;
+
+            // Chunk current page items into rows of 20
+            const rowsHTML = [];
+
+            if (activeFilteredPoints) {
+                // Rendering search/filtered subset
+                for (let i = startIndex; i < endIndex; i += CHARS_PER_ROW) {
+                    const rowPoints = activeFilteredPoints.slice(i, i + CHARS_PER_ROW);
+                    const firstCp = rowPoints[0];
+                    
+                    let cellsHTML = '';
+                    for (let j = 0; j < CHARS_PER_ROW; j++) {
+                        if (j < rowPoints.length) {
+                            const cp = rowPoints[j];
+                            cellsHTML += renderCharCell(cp);
+                        } else {
+                            cellsHTML += `<td class="p-1 bg-gray-50/50 dark:bg-gray-800/30"></td>`;
+                        }
+                    }
+
+                    rowsHTML.push(`
+                        <tr class="hover:bg-sky-50/50 dark:hover:bg-sky-900/10 transition">
+                            <td class="py-2 px-2 border-r border-gray-200 dark:border-gray-700 text-xs font-mono-code text-gray-400 text-left">${codePointToHex(firstCp)}</td>
+                            ${cellsHTML}
+                        </tr>
+                    `);
+                }
+            } else {
+                // Standard Range Sequential Rendering (Fast Path)
+                for (let cp = startIndex; cp < endIndex; cp += CHARS_PER_ROW) {
+                    let cellsHTML = '';
+                    for (let offset = 0; offset < CHARS_PER_ROW; offset++) {
+                        const currentCp = cp + offset;
+                        if (currentCp <= MAX_UNICODE) {
+                            cellsHTML += renderCharCell(currentCp);
+                        } else {
+                            cellsHTML += `<td class="p-1 bg-gray-50/50 dark:bg-gray-800/30"></td>`;
+                        }
+                    }
+
+                    rowsHTML.push(`
+                        <tr class="hover:bg-sky-50/50 dark:hover:bg-sky-900/10 transition">
+                            <td class="py-2 px-2 border-r border-gray-200 dark:border-gray-700 text-xs font-mono-code text-gray-400 text-left">${codePointToHex(cp)}</td>
+                            ${cellsHTML}
+                        </tr>
+                    `);
+                }
+            }
+
+            gridBody.innerHTML = rowsHTML.join('');
+        }
+
+        function renderCharCell(cp) {
+            if (!isValidCodePoint(cp)) {
+                return `<td class="p-1 text-gray-300 dark:text-gray-600 text-xs">N/A</td>`;
+            }
+
+            const char = String.fromCodePoint(cp);
+            const isControl = (cp <= 0x001F) || (cp >= 0x007F && cp <= 0x009F);
+            const hexStr = cp.toString(16).toUpperCase();
+
+            let displayContent = char;
+            let customClass = 'text-gray-800 dark:text-gray-100';
+
+            if (isControl) {
+                displayContent = `<span class="text-[9px] font-mono text-gray-400 dark:text-gray-500">CTRL</span>`;
+            }
+
+            return `
+                <td class="p-1 border-r border-b border-gray-100 dark:border-gray-700/40 text-center hover:bg-sky-100 dark:hover:bg-sky-800/50 cursor-pointer rounded transition group"
+                    onclick="openInspector(${cp})" title="${codePointToHex(cp)}">
+                    <div class="text-base sm:text-lg h-8 flex items-center justify-center ${customClass} group-hover:scale-125 transition-transform">
+                        ${displayContent}
+                    </div>
+                </td>
+            `;
+        }
+
+        // --- INSPECTOR MODAL logic ---
+        window.openInspector = function(cp) {
+            activeSelectedCodePoint = cp;
+            const char = String.fromCodePoint(cp);
+            const hex = codePointToHex(cp);
+
+            modalChar.textContent = (cp <= 0x001F || (cp >= 0x007F && cp <= 0x009F)) ? '⚙️' : char;
+            modalHex.textContent = hex;
+            modalDecimal.textContent = `Decimal: ${cp}`;
+            modalUtf8.textContent = getUtf8Bytes(cp);
+            modalUtf16.textContent = getUtf16Bytes(cp);
+            modalHtmlEntity.textContent = `&#${cp};`;
+
+            charModal.classList.remove('hidden');
+            setTimeout(() => {
+                charModal.classList.remove('opacity-0');
+                modalCard.classList.remove('scale-95');
+                modalCard.classList.add('scale-100');
+            }, 10);
+        };
+
+        function closeModal() {
+            charModal.classList.add('opacity-0');
+            modalCard.classList.remove('scale-100');
+            modalCard.classList.add('scale-95');
+            setTimeout(() => {
+                charModal.classList.add('hidden');
+            }, 200);
+        }
+
+        // --- SEARCH ENGINE ---
+        function handleSearch() {
+            const query = searchInput.value.trim();
+            if (!query) {
+                activeFilteredPoints = null;
+                clearSearchBtn.classList.add('hidden');
+                currentPage = 1;
+                renderGrid();
+                return;
+            }
+
+            clearSearchBtn.classList.remove('hidden');
+
+            // Check if user entered hex formatted string (e.g. U+4E00 or 4E00 or 0x4E00)
+            const hexMatch = query.match(/^(?:U\+|0x)?([0-9a-fA-F]{1,6})$/);
+
+            if (hexMatch) {
+                const targetCp = parseInt(hexMatch[1], 16);
+                if (targetCp <= MAX_UNICODE) {
+                    activeFilteredPoints = [targetCp];
+                } else {
+                    activeFilteredPoints = [];
+                }
+            } else {
+                // Direct character exact or multi-char search
+                const points = [];
+                for (const char of query) {
+                    const cp = char.codePointAt(0);
+                    if (cp !== undefined) {
+                        points.push(cp);
+                    }
+                }
+                activeFilteredPoints = points;
+            }
+
+            currentPage = 1;
+            renderGrid();
+        }
+
+        // --- NAVIGATION & JUMP CONTROLS ---
+        function jumpToCodePoint(cp) {
+            if (isNaN(cp) || cp < 0) cp = 0;
+            if (cp > MAX_UNICODE) cp = MAX_UNICODE;
+
+            // Reset active search if jumping
+            activeFilteredPoints = null;
+            searchInput.value = '';
+            clearSearchBtn.classList.add('hidden');
+
+            currentPage = Math.floor(cp / CHARS_PER_PAGE) + 1;
+            renderGrid();
+        }
+
+        // --- TOAST NOTIFICATION ---
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            toastMsg.textContent = message;
+            toast.classList.remove('translate-y-10', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-10', 'opacity-0');
+            }, 2000);
+        }
+
+        function copyToClipboard(text, msg) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => showToast(msg));
+            } else {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showToast(msg);
+            }
+        }
+
+        // --- EVENT LISTENERS ---
+        // Search Events
+        searchInput.addEventListener('input', handleSearch);
+        clearSearchBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            handleSearch();
+        });
+
+        // Pagination Events
+        prevPageBtn.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderGrid();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+
+        nextPageBtn.addEventListener('click', () => {
+            currentPage++;
+            renderGrid();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        pageInput.addEventListener('change', () => {
+            let val = parseInt(pageInput.value);
+            if (!isNaN(val)) {
+                currentPage = val;
+                renderGrid();
+            }
+        });
+
+        // Jump Controls
+        document.querySelectorAll('.jump-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const cp = parseInt(btn.getAttribute('data-jump'));
+                jumpToCodePoint(cp);
+            });
+        });
+
+        jumpBtn.addEventListener('click', () => {
+            const val = jumpInput.value.trim();
+            const hexMatch = val.match(/^(?:U\+|0x)?([0-9a-fA-F]{1,6})$/);
+            if (hexMatch) {
+                jumpToCodePoint(parseInt(hexMatch[1], 16));
+            } else {
+                const num = parseInt(val, 10);
+                if (!isNaN(num)) jumpToCodePoint(num);
+            }
+        });
+
+        jumpInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') jumpBtn.click();
+        });
+
+        // Modal Events
+        closeModalBtn.addEventListener('click', closeModal);
+        charModal.addEventListener('click', (e) => {
+            if (e.target === charModal) closeModal();
+        });
+
+        copyCharBtn.addEventListener('click', () => {
+            if (activeSelectedCodePoint !== null) {
+                const char = String.fromCodePoint(activeSelectedCodePoint);
+                copyToClipboard(char, `文字 "${char}" をコピーしました`);
+            }
+        });
+
+        copyCodeBtn.addEventListener('click', () => {
+            if (activeSelectedCodePoint !== null) {
+                const hex = codePointToHex(activeSelectedCodePoint);
+                copyToClipboard(hex, `コードポイント "${hex}" をコピーしました`);
+            }
+        });
+
+        // Theme Toggle
+        themeToggle.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+        });
+
+        // Keybindings (Escape to close modal)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        // --- INIT ---
+        window.onload = () => {
+            renderGrid();
+        };
+    </script>
+</body>
+</html>
