@@ -217,6 +217,30 @@
             font-weight: bold;
             border: 1px solid #bee3f8;
         }
+
+        .period-filter {
+    margin: 0 0 20px;
+    padding: 14px;
+    border: 1px solid #cbd5e0;
+    border-radius: 8px;
+    background: #f7fafc;
+}
+
+.period-filter legend {
+    padding: 0 6px;
+    font-weight: bold;
+    color: #2d3748;
+}
+
+.period-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 8px 14px;
+}
+
+.period-options label {
+    cursor: pointer;
+}
     </style>
 </head>
 <body>
@@ -224,6 +248,21 @@
 <div class="container">
     <h1>歴史出来事 並び替えクイズ</h1>
     <p class="instruction">下の選択肢を**古い順（時系列）**にタップして並び替えてください。<br>（もう一度押すとキャンセルできます）</p>
+
+    <fieldset class="period-filter">
+    <legend>出題する時代（複数選択できます）</legend>
+    <div class="period-options">
+        <label><input type="checkbox" name="period" value="ancient" checked onchange="generateQuiz()"> 古代（〜1184年）</label>
+        <label><input type="checkbox" name="period" value="kamakura" checked onchange="generateQuiz()"> 鎌倉時代（1185〜1333年）</label>
+        <label><input type="checkbox" name="period" value="muromachi" checked onchange="generateQuiz()"> 南北朝・室町時代（1334〜1466年）</label>
+        <label><input type="checkbox" name="period" value="sengoku" checked onchange="generateQuiz()"> 戦国・安土桃山時代（1467〜1602年）</label>
+        <label><input type="checkbox" name="period" value="edo" checked onchange="generateQuiz()"> 江戸時代（1603〜1867年）</label>
+        <label><input type="checkbox" name="period" value="meiji" checked onchange="generateQuiz()"> 明治時代（1868〜1911年）</label>
+        <label><input type="checkbox" name="period" value="taisho" checked onchange="generateQuiz()"> 大正時代（1912〜1925年）</label>
+        <label><input type="checkbox" name="period" value="showa" checked onchange="generateQuiz()"> 昭和時代（1926〜1945年）</label>
+        <label><input type="checkbox" name="period" value="modern" checked onchange="generateQuiz()"> 戦後・現代（1946年〜）</label>
+    </div>
+</fieldset>
     
     <div class="quiz-box" id="quiz-box"></div>
     
@@ -606,6 +645,27 @@ let correctOrder = "";
 let userAnswers = [];
 let labelToItemMap = {};
 
+function getJapanesePeriod(yearValue) {
+    const year = Math.floor(yearValue);
+
+    if (year <= 1184) return "ancient";
+    if (year <= 1333) return "kamakura";
+    if (year <= 1466) return "muromachi";
+    if (year <= 1602) return "sengoku";
+    if (year <= 1867) return "edo";
+    if (year <= 1911) return "meiji";
+    if (year <= 1925) return "taisho";
+    if (year <= 1945) return "showa";
+    return "modern";
+}
+
+function getSelectedPeriods() {
+    return new Set(
+        [...document.querySelectorAll('input[name="period"]:checked')]
+            .map(input => input.value)
+    );
+}
+
 function generateQuiz() {
     document.getElementById("result").style.display = "none";
     document.getElementById("explanation").style.display = "none";
@@ -614,7 +674,26 @@ function generateQuiz() {
     labelToItemMap = {};
     updateAnswerDisplay();
     
-    let shuffled = [...historyData].sort(() => 0.5 - Math.random());
+    const selectedPeriods = getSelectedPeriods();
+    const eligibleItems = historyData.filter(item =>
+        selectedPeriods.has(getJapanesePeriod(item.year))
+                                            );
+
+    if (selectedPeriods.size === 0) {
+        document.getElementById("quiz-box").innerHTML =
+            "出題する時代を1つ以上選んでください。";
+        currentSelection = [];
+        return;
+    }
+
+    if (eligibleItems.length < 4) {
+        document.getElementById("quiz-box").innerHTML =
+            "選択した範囲の出来事が少なく、問題を作れません。別の時代も選んでください。";
+        currentSelection = [];
+        return;
+    }
+
+    const shuffled = [...eligibleItems].sort(() => 0.5 - Math.random());
     currentSelection = shuffled.slice(0, 4);
     
     // 小数点（year）を含めた正確な昇順ソートを実行
