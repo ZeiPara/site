@@ -10,241 +10,311 @@
     <link rel="apple-touch-icon" sizes="180x180" href="https://zeipara.github.io/site/apple-touch-icon-180x180.png">
     <link rel="icon_iphone" herf="https://zeipara.github.io/site/favicon.ico">
     <style>
-        body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f5f7fa;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .container {
-            max-width: 650px;
-            width: 100%;
-            background: #fff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        h1 {
-            text-align: center;
-            color: #2c3e50;
-            font-size: 24px;
-            margin-bottom: 20px;
-        }
-        p.instruction {
-            color: #666;
-            text-align: center;
-            margin-bottom: 25px;
-        }
-        .quiz-box {
-            background: #edf2f7;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        .quiz-btn {
-            display: flex;
-            align-items: center;
-            width: 100%;
-            background: #fff;
-            padding: 12px 15px;
-            margin: 10px 0;
-            border-radius: 6px;
-            border: 1px solid #cbd5e0;
-            border-left: 5px solid #3182ce;
-            font-weight: bold;
-            font-size: 18px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            cursor: pointer;
-            text-align: left;
-            transition: all 0.2s;
-        }
-        .quiz-btn:hover {
-            background: #f7fafc;
-            transform: translateY(-1px);
-        }
-        .quiz-btn.selected {
-            background: #cbd5e0;
-            border-left-color: #4a5568;
-            opacity: 0.7;
-        }
-        .quiz-btn span.label {
-            display: inline-block;
-            background: #3182ce;
-            color: white;
-            border-radius: 50%;
-            width: 28px;
-            height: 28px;
-            text-align: center;
-            line-height: 28px;
-            margin-right: 15px;
-            font-size: 16px;
-        }
-        .quiz-btn.selected span.label {
-            background: #4a5568;
-        }
-        .answer-area {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-            margin: 25px 0;
-            min-height: 60px;
-        }
-        .answer-box {
-            width: 50px;
-            height: 50px;
-            border: 2px dashed #cbd5e0;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            font-weight: bold;
-            color: #2b6cb0;
-            background: #fff;
-            transition: all 0.2s;
-        }
-        .answer-box.filled {
-            border-style: solid;
-            border-color: #3182ce;
-            background: #ebf8ff;
-        }
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
-        button.action-btn {
-            padding: 12px 24px;
-            font-size: 16px;
-            font-weight: bold;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .btn-submit { background: #48bb78; color: white; }
-        .btn-submit:hover { background: #38a169; }
-        .btn-next { background: #4299e1; color: white; }
-        .btn-next:hover { background: #3182ce; }
-        
-        .result {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 6px;
-            text-align: center;
-            font-weight: bold;
-            display: none;
-            font-size: 18px;
-        }
-        .correct { background: #c6f6d5; color: #22543d; }
-        .incorrect { background: #fed7d7; color: #742a2a; }
-        
-        .text-output-area {
-            margin-top: 20px;
-            background: #f7fafc;
-            padding: 15px;
-            border-radius: 6px;
-            border: 1px solid #cbd5e0;
-            display: none;
-        }
-        .text-output-title {
-            font-size: 14px;
-            font-weight: bold;
-            color: #4a5568;
-            margin-bottom: 8px;
-        }
-        .text-output-box {
-            width: 100%;
-            font-family: monospace;
-            font-size: 13px;
-            padding: 10px;
-            background: #fff;
-            border: 1px solid #e2e8f0;
-            border-radius: 4px;
-            box-sizing: border-box;
-            color: #2d3748;
-        }
-        
-        .explanation {
-            margin-top: 20px;
-            background: #f7fafc;
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-            display: none;
-        }
-        .flow-title {
-            font-size: 16px;
-            font-weight: bold;
-            color: #2d3748;
-            border-bottom: 2px solid #cbd5e0;
-            padding-bottom: 5px;
-            margin-bottom: 15px;
-        }
-        .flow-step {
-            background: #fff;
-            padding: 12px;
-            border-radius: 6px;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        .flow-step .year {
-            color: #e53e3e;
-            font-weight: bold;
-            margin-right: 5px;
-        }
-        .flow-step .name {
-            font-weight: bold;
-            color: #2b6cb0;
-        }
-        .flow-arrow {
-            text-align: center;
-            color: #a0aec0;
-            font-size: 20px;
-            margin: 8px 0;
-            position: relative;
-        }
-        .flow-connect-text {
-            display: inline-block;
-            background: #ebf8ff;
-            color: #2b6cb0;
-            font-size: 13px;
-            padding: 3px 10px;
-            border-radius: 12px;
-            margin: 5px 0;
-            font-weight: bold;
-            border: 1px solid #bee3f8;
+    body {
+        font-family: 'Helvetica Neue', Arial, sans-serif;
+        background-color: #f5f7fa;
+        color: #333;
+        margin: 0;
+        padding: 20px;
+    }
+
+    .page-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 650px) 280px;
+        gap: 20px;
+        align-items: start;
+        max-width: 980px;
+        margin: 0 auto;
+    }
+
+    .container {
+        box-sizing: border-box;
+        max-width: 650px;
+        width: 100%;
+        background: #fff;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .period-sidebar {
+        position: sticky;
+        top: 20px;
+    }
+
+    h1 {
+        text-align: center;
+        color: #2c3e50;
+        font-size: 24px;
+        margin-bottom: 20px;
+    }
+
+    p.instruction {
+        color: #666;
+        text-align: center;
+        margin-bottom: 25px;
+    }
+
+    .quiz-box {
+        background: #edf2f7;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+    .quiz-btn {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        background: #fff;
+        padding: 12px 15px;
+        margin: 10px 0;
+        border-radius: 6px;
+        border: 1px solid #cbd5e0;
+        border-left: 5px solid #3182ce;
+        font-weight: bold;
+        font-size: 18px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        cursor: pointer;
+        text-align: left;
+        transition: all 0.2s;
+    }
+
+    .quiz-btn:hover {
+        background: #f7fafc;
+        transform: translateY(-1px);
+    }
+
+    .quiz-btn.selected {
+        background: #cbd5e0;
+        border-left-color: #4a5568;
+        opacity: 0.7;
+    }
+
+    .quiz-btn span.label {
+        display: inline-block;
+        background: #3182ce;
+        color: white;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        text-align: center;
+        line-height: 28px;
+        margin-right: 15px;
+        font-size: 16px;
+    }
+
+    .quiz-btn.selected span.label {
+        background: #4a5568;
+    }
+
+    .answer-area {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 15px;
+        margin: 25px 0;
+        min-height: 60px;
+    }
+
+    .answer-box {
+        width: 50px;
+        height: 50px;
+        border: 2px dashed #cbd5e0;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        font-weight: bold;
+        color: #2b6cb0;
+        background: #fff;
+        transition: all 0.2s;
+    }
+
+    .answer-box.filled {
+        border-style: solid;
+        border-color: #3182ce;
+        background: #ebf8ff;
+    }
+
+    .btn-group {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+    }
+
+    button.action-btn {
+        padding: 12px 24px;
+        font-size: 16px;
+        font-weight: bold;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .btn-submit { background: #48bb78; color: white; }
+    .btn-submit:hover { background: #38a169; }
+
+    .btn-next { background: #4299e1; color: white; }
+    .btn-next:hover { background: #3182ce; }
+
+    .result {
+        margin-top: 20px;
+        padding: 15px;
+        border-radius: 6px;
+        text-align: center;
+        font-weight: bold;
+        display: none;
+        font-size: 18px;
+    }
+
+    .correct { background: #c6f6d5; color: #22543d; }
+    .incorrect { background: #fed7d7; color: #742a2a; }
+
+    .text-output-area {
+        margin-top: 20px;
+        background: #f7fafc;
+        padding: 15px;
+        border-radius: 6px;
+        border: 1px solid #cbd5e0;
+        display: none;
+    }
+
+    .text-output-title {
+        font-size: 14px;
+        font-weight: bold;
+        color: #4a5568;
+        margin-bottom: 8px;
+    }
+
+    .text-output-box {
+        width: 100%;
+        font-family: monospace;
+        font-size: 13px;
+        padding: 10px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        box-sizing: border-box;
+        color: #2d3748;
+    }
+
+    .explanation {
+        margin-top: 20px;
+        background: #f7fafc;
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        display: none;
+    }
+
+    .flow-title {
+        font-size: 16px;
+        font-weight: bold;
+        color: #2d3748;
+        border-bottom: 2px solid #cbd5e0;
+        padding-bottom: 5px;
+        margin-bottom: 15px;
+    }
+
+    .flow-step {
+        background: #fff;
+        padding: 12px;
+        border-radius: 6px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .flow-step .year {
+        color: #e53e3e;
+        font-weight: bold;
+        margin-right: 5px;
+    }
+
+    .flow-step .name {
+        font-weight: bold;
+        color: #2b6cb0;
+    }
+
+    .flow-arrow {
+        text-align: center;
+        color: #a0aec0;
+        font-size: 20px;
+        margin: 8px 0;
+        position: relative;
+    }
+
+    .flow-connect-text {
+        display: inline-block;
+        background: #ebf8ff;
+        color: #2b6cb0;
+        font-size: 13px;
+        padding: 3px 10px;
+        border-radius: 12px;
+        margin: 5px 0;
+        font-weight: bold;
+        border: 1px solid #bee3f8;
+    }
+
+    .period-filter {
+        box-sizing: border-box;
+        width: 100%;
+        margin: 0;
+        padding: 14px;
+        border: 1px solid #cbd5e0;
+        border-radius: 8px;
+        background: #f7fafc;
+    }
+
+    .period-filter legend {
+        padding: 0 6px;
+        font-weight: bold;
+        color: #2d3748;
+    }
+
+    .period-actions {
+        display: flex;
+        gap: 8px;
+        margin: 8px 0 12px;
+    }
+
+    .period-actions button {
+        flex: 1;
+        padding: 8px 10px;
+        border: 0;
+        border-radius: 6px;
+        background: #e2e8f0;
+        color: #2d3748;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .period-actions button:hover {
+        background: #cbd5e0;
+    }
+
+    .period-options {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .period-options label {
+        cursor: pointer;
+    }
+
+    @media (max-width: 850px) {
+        .page-layout {
+            grid-template-columns: 1fr;
         }
 
-        .period-filter {
-    margin: 20px 0 20px;
-    padding: 14px;
-    border: 1px solid #cbd5e0;
-    border-radius: 8px;
-    background: #f7fafc;
-}
-
-.period-filter legend {
-    padding: 0 6px;
-    font-weight: bold;
-    color: #2d3748;
-}
-
-.period-options {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: 8px 14px;
-}
-
-.period-options label {
-    cursor: pointer;
-}
-    </style>
+        .period-sidebar {
+            position: static;
+        }
+    }
+</style>
 </head>
 <body>
 
@@ -263,7 +333,7 @@
     
     <div class="btn-group">
         <button class="action-btn btn-submit" onclick="checkAnswer()">答え合わせ</button>
-        <button class="action-btn btn-next" onclick="generateQuiz()">次の問題</button>
+        <button class="action-btn btn-next" onclick="nextQuestion()">次の問題へ</button>
     </div>
     
     <div class="result" id="result"></div>
@@ -275,9 +345,15 @@
     
     <div class="explanation" id="explanation"></div>
 
+    <aside class="period-sidebar">
     <fieldset class="period-filter">
-    <legend>出題する時代（複数選択できます）</legend>
-    <div class="period-options">
+        <legend>出題する時代（複数選択できます）</legend>
+        <div class="period-actions">
+            <button type="button" onclick="setAllPeriods(true)">全選択</button>
+            <button type="button" onclick="setAllPeriods(false)">全解除</button>
+        </div>
+        <div class="period-options">
+        
         <label><input type="checkbox" name="period" value="ancient" checked onchange="generateQuiz()"> 古代（〜1184年）</label>
         <label><input type="checkbox" name="period" value="kamakura" checked onchange="generateQuiz()"> 鎌倉時代（1185〜1333年）</label>
         <label><input type="checkbox" name="period" value="muromachi" checked onchange="generateQuiz()"> 南北朝・室町時代（1334〜1466年）</label>
@@ -287,8 +363,10 @@
         <label><input type="checkbox" name="period" value="taisho" checked onchange="generateQuiz()"> 大正時代（1912〜1925年）</label>
         <label><input type="checkbox" name="period" value="showa" checked onchange="generateQuiz()"> 昭和時代（1926〜1945年）</label>
         <label><input type="checkbox" name="period" value="modern" checked onchange="generateQuiz()"> 戦後・現代（1946年〜）</label>
-    </div>
-</fieldset>
+
+        </div>
+    </fieldset>
+</aside>
 </div>
 
 <script>
@@ -669,6 +747,18 @@ function getSelectedPeriods() {
     );
 }
 
+function setAllPeriods(checked) {
+    document.querySelectorAll('input[name="period"]').forEach(input => {
+        input.checked = checked;
+    });
+    generateQuiz();
+}
+
+function nextQuestion() {
+    generateQuiz();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+}
+    
 function generateQuiz() {
     document.getElementById("result").style.display = "none";
     document.getElementById("explanation").style.display = "none";
