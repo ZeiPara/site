@@ -407,7 +407,7 @@
             
             const htmlContent = data.map(item => `
                 <div class="timeline-card">
-                    <div class="timeline-year">${item.year}年</div>
+                    <div class="timeline-year">${Math.floor(item.year)}年</div>
                     <div class="timeline-title">${item.name}</div>
                     <div class="timeline-text">${item.nextFlow}</div>
                 </div>
