@@ -451,7 +451,7 @@
             const htmlContent = sortedData.map(item => `
                 <div class="timeline-item">
                     <div class="timeline-content">
-                        <p class="timeline-year">${item.year} 年</p>
+                        <p class="timeline-year">${Math.floor(item.year)} 年</p>
                         <h3 class="timeline-title">${item.name}</h3>
                         <p class="timeline-text">${item.nextFlow}</p>
                     </div>
