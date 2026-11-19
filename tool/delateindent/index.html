@@ -13,7 +13,7 @@
         const result = input.replace(/^[ \t]+/gm, '').trim();
         document.getElementById("output").innerHTML = "<p id=\"outputtext\">" + result + "</p><br><button type=\"button\" onclick=\"Copy()\">コピー</button>";
       }
-      function Copy() {
+      async function Copy() {
         var text = document.getElementById("outputtext").textContent;
         try {
           await navigator.clipboard.writeText(text);
