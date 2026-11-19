@@ -6,20 +6,24 @@
   <body>
     <textarea id="input"></textarea><br>
     <button type="button" onclick="Clicked()">実行</button><br>
-    <div id="output"></div>
+    <textarea id="outputtext" readonly></textarea><br>
+    <button type="button" onclick="Copy()">コピー</button>
+
     <script>
       function Clicked() {
-        var input = document.getElementById("input").value;
-        const result = input.replace(/^[ \t]+/gm, '').trim();
-        document.getElementById("output").innerHTML = "<pre><code id=\"outputtext\">" + result + "</code></pre><br><button type=\"button\" onclick=\"Copy()\">コピー</button>";
+        const input = document.getElementById("input").value;
+        const result = input.replace(/^[ \t]+/gm, "").trim();
+        document.getElementById("outputtext").value = result;
       }
+
       async function Copy() {
-        var text = document.getElementById("outputtext").textContent;
+        const text = document.getElementById("outputtext").value;
+
         try {
           await navigator.clipboard.writeText(text);
-          alert('コピーしました');
+          alert("コピーしました");
         } catch (err) {
-          console.error('コピーに失敗しました:', err);
+          console.error("コピーに失敗しました:", err);
         }
       }
     </script>
