@@ -388,6 +388,10 @@
         <label><input type="checkbox" name="period" value="showa" checked onchange="generateQuiz()"> 昭和時代（1926〜1945年）</label>
         <label><input type="checkbox" name="period" value="modern" checked onchange="generateQuiz()"> 戦後・現代（1946年〜）</label>
 
+            <label>
+                <input type="checkbox" id="include-minor" checked onchange="generateQuiz()">
+                マイナーな出来事も含める
+            </label>
         </div>
     </fieldset>
 </aside>
@@ -852,9 +856,19 @@ function generateQuiz() {
     updateAnswerDisplay();
     
     const selectedPeriods = getSelectedPeriods();
+    const includeMinor = document.getElementById("include-minor").checked;
+
     const eligibleItems = historyData.filter(item =>
         selectedPeriods.has(getJapanesePeriod(item.year))
-                                            );
+    );
+
+    const eligibleMinorItems = includeMinor
+        ? minorHistoryData.filter(item =>
+            selectedPeriods.has(getJapanesePeriod(item.year))
+        )
+        : [];
+
+    const quizCandidates = [...eligibleItems, ...eligibleMinorItems];
 
     if (selectedPeriods.size === 0) {
         document.getElementById("quiz-box").innerHTML =
@@ -863,14 +877,14 @@ function generateQuiz() {
         return;
     }
 
-    if (eligibleItems.length < 4) {
+    if (quizCandidates.length < 4) {
         document.getElementById("quiz-box").innerHTML =
             "選択した範囲の出来事が少なく、問題を作れません。別の時代も選んでください。";
         currentSelection = [];
         return;
     }
 
-    const shuffled = [...eligibleItems].sort(() => 0.5 - Math.random());
+    const shuffled = [...quizCandidates].sort(() => 0.5 - Math.random());
     currentSelection = shuffled.slice(0, 4);
     
     // 小数点（year）を含めた正確な昇順ソートを実行
