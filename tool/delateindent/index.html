@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>インデント削除</title>
+  </head>
+  <body>
+    <textarea id="input"></textarea><br>
+    <button type="button" onclick="Clicked()">実行</button><br>
+    <div id="output"></div>
+    <script>
+      function Clicked() {
+        var input = document.getElementById("input").value;
+        const result = text
+          .replace(/^[ \t]+/gm, '')
+          .trim();
+        document.getElementById("output").innerHTML = "<p id=\"outputtext\">" + result + "</p><br><button type=\"button\" onclick=\"Copy()\>コピー</button>";
+      }
+      function Copy() {
+        var text = document.getElementById("outputtext").innerHTML;
+        try {
+          await navigator.clipboard.writeText(text);
+          alert('コピーしました');
+        } catch (err) {
+          console.error('コピーに失敗しました:', err);
+        }
+      }
+    </script>
+  </body>
+</html>
